@@ -1,330 +1,420 @@
-let EXIF = function (obj) {
-	if (obj instanceof EXIF) return obj
-	if (!(this instanceof EXIF)) return new EXIF(obj)
-	this.EXIFwrapped = obj
-}
+export class Exifjs {
+	static Tags = {
+		// version tags
+		0x9000: "ExifVersion", // EXIF version
+		0xa000: "FlashpixVersion", // Flashpix format version
 
-if (typeof exports !== "undefined") {
-	if (typeof module !== "undefined" && module.exports) {
-		exports = module.exports = EXIF
+		// colorspace tags
+		0xa001: "ColorSpace", // Color space information tag
+
+		// image configuration
+		0xa002: "PixelXDimension", // Valid width of meaningful image
+		0xa003: "PixelYDimension", // Valid height of meaningful image
+		0x9101: "ComponentsConfiguration", // Information about channels
+		0x9102: "CompressedBitsPerPixel", // Compressed bits per pixel
+
+		// user information
+		0x927c: "MakerNote", // Any desired information written by the manufacturer
+		0x9286: "UserComment", // Comments by user
+
+		// related file
+		0xa004: "RelatedSoundFile", // Name of related sound file
+
+		// date and time
+		0x9003: "DateTimeOriginal", // Date and time when the original image was generated
+		0x9004: "DateTimeDigitized", // Date and time when the image was stored digitally
+		0x9290: "SubsecTime", // Fractions of seconds for DateTime
+		0x9291: "SubsecTimeOriginal", // Fractions of seconds for DateTimeOriginal
+		0x9292: "SubsecTimeDigitized", // Fractions of seconds for DateTimeDigitized
+
+		// picture-taking conditions
+		0x829a: "ExposureTime", // Exposure time (in seconds)
+		0x829d: "FNumber", // F number
+		0x8822: "ExposureProgram", // Exposure program
+		0x8824: "SpectralSensitivity", // Spectral sensitivity
+		0x8827: "ISOSpeedRatings", // ISO speed rating
+		0x8828: "OECF", // Optoelectric conversion factor
+		0x9201: "ShutterSpeedValue", // Shutter speed
+		0x9202: "ApertureValue", // Lens aperture
+		0x9203: "BrightnessValue", // Value of brightness
+		0x9204: "ExposureBias", // Exposure bias
+		0x9205: "MaxApertureValue", // Smallest F number of lens
+		0x9206: "SubjectDistance", // Distance to subject in meters
+		0x9207: "MeteringMode", // Metering mode
+		0x9208: "LightSource", // Kind of light source
+		0x9209: "Flash", // Flash status
+		0x9214: "SubjectArea", // Location and area of main subject
+		0x920a: "FocalLength", // Focal length of the lens in mm
+		0xa20b: "FlashEnergy", // Strobe energy in BCPS
+		0xa20c: "SpatialFrequencyResponse", //
+		0xa20e: "FocalPlaneXResolution", // Number of pixels in width direction per FocalPlaneResolutionUnit
+		0xa20f: "FocalPlaneYResolution", // Number of pixels in height direction per FocalPlaneResolutionUnit
+		0xa210: "FocalPlaneResolutionUnit", // Unit for measuring FocalPlaneXResolution and FocalPlaneYResolution
+		0xa214: "SubjectLocation", // Location of subject in image
+		0xa215: "ExposureIndex", // Exposure index selected on camera
+		0xa217: "SensingMethod", // Image sensor type
+		0xa300: "FileSource", // Image source (3 == DSC)
+		0xa301: "SceneType", // Scene type (1 == directly photographed)
+		0xa302: "CFAPattern", // Color filter array geometric pattern
+		0xa401: "CustomRendered", // Special processing
+		0xa402: "ExposureMode", // Exposure mode
+		0xa403: "WhiteBalance", // 1 = auto white balance, 2 = manual
+		0xa404: "DigitalZoomRation", // Digital zoom ratio
+		0xa405: "FocalLengthIn35mmFilm", // Equivalent foacl length assuming 35mm film camera (in mm)
+		0xa406: "SceneCaptureType", // Type of scene
+		0xa407: "GainControl", // Degree of overall image gain adjustment
+		0xa408: "Contrast", // Direction of contrast processing applied by camera
+		0xa409: "Saturation", // Direction of saturation processing applied by camera
+		0xa40a: "Sharpness", // Direction of sharpness processing applied by camera
+		0xa40b: "DeviceSettingDescription", //
+		0xa40c: "SubjectDistanceRange", // Distance to subject
+
+		// other tags
+		0xa005: "InteroperabilityIFDPointer",
+		0xa420: "ImageUniqueID", // Identifier assigned uniquely to each image
 	}
-	exports.EXIF = EXIF
-} else {
-	root.EXIF = EXIF
-}
 
-const ExifTags = (EXIF.Tags = {
-	// version tags
-	0x9000: "ExifVersion", // EXIF version
-	0xa000: "FlashpixVersion", // Flashpix format version
+	static TiffTags = {
+		0x0100: "ImageWidth",
+		0x0101: "ImageHeight",
+		0x8769: "ExifIFDPointer",
+		0x8825: "GPSInfoIFDPointer",
+		0xa005: "InteroperabilityIFDPointer",
+		0x0102: "BitsPerSample",
+		0x0103: "Compression",
+		0x0106: "PhotometricInterpretation",
+		0x0112: "Orientation",
+		0x0115: "SamplesPerPixel",
+		0x011c: "PlanarConfiguration",
+		0x0212: "YCbCrSubSampling",
+		0x0213: "YCbCrPositioning",
+		0x011a: "XResolution",
+		0x011b: "YResolution",
+		0x0128: "ResolutionUnit",
+		0x0111: "StripOffsets",
+		0x0116: "RowsPerStrip",
+		0x0117: "StripByteCounts",
+		0x0201: "JPEGInterchangeFormat",
+		0x0202: "JPEGInterchangeFormatLength",
+		0x012d: "TransferFunction",
+		0x013e: "WhitePoint",
+		0x013f: "PrimaryChromaticities",
+		0x0211: "YCbCrCoefficients",
+		0x0214: "ReferenceBlackWhite",
+		0x0132: "DateTime",
+		0x010e: "ImageDescription",
+		0x010f: "Make",
+		0x0110: "Model",
+		0x0131: "Software",
+		0x013b: "Artist",
+		0x8298: "Copyright",
+	}
 
-	// colorspace tags
-	0xa001: "ColorSpace", // Color space information tag
+	static GPSTags = {
+		0x0000: "GPSVersionID",
+		0x0001: "GPSLatitudeRef",
+		0x0002: "GPSLatitude",
+		0x0003: "GPSLongitudeRef",
+		0x0004: "GPSLongitude",
+		0x0005: "GPSAltitudeRef",
+		0x0006: "GPSAltitude",
+		0x0007: "GPSTimeStamp",
+		0x0008: "GPSSatellites",
+		0x0009: "GPSStatus",
+		0x000a: "GPSMeasureMode",
+		0x000b: "GPSDOP",
+		0x000c: "GPSSpeedRef",
+		0x000d: "GPSSpeed",
+		0x000e: "GPSTrackRef",
+		0x000f: "GPSTrack",
+		0x0010: "GPSImgDirectionRef",
+		0x0011: "GPSImgDirection",
+		0x0012: "GPSMapDatum",
+		0x0013: "GPSDestLatitudeRef",
+		0x0014: "GPSDestLatitude",
+		0x0015: "GPSDestLongitudeRef",
+		0x0016: "GPSDestLongitude",
+		0x0017: "GPSDestBearingRef",
+		0x0018: "GPSDestBearing",
+		0x0019: "GPSDestDistanceRef",
+		0x001a: "GPSDestDistance",
+		0x001b: "GPSProcessingMethod",
+		0x001c: "GPSAreaInformation",
+		0x001d: "GPSDateStamp",
+		0x001e: "GPSDifferential",
+	}
 
-	// image configuration
-	0xa002: "PixelXDimension", // Valid width of meaningful image
-	0xa003: "PixelYDimension", // Valid height of meaningful image
-	0x9101: "ComponentsConfiguration", // Information about channels
-	0x9102: "CompressedBitsPerPixel", // Compressed bits per pixel
+	static IFD1Tags = {
+		0x0100: "ImageWidth",
+		0x0101: "ImageHeight",
+		0x0102: "BitsPerSample",
+		0x0103: "Compression",
+		0x0106: "PhotometricInterpretation",
+		0x0111: "StripOffsets",
+		0x0112: "Orientation",
+		0x0115: "SamplesPerPixel",
+		0x0116: "RowsPerStrip",
+		0x0117: "StripByteCounts",
+		0x011a: "XResolution",
+		0x011b: "YResolution",
+		0x011c: "PlanarConfiguration",
+		0x0128: "ResolutionUnit",
+		0x0201: "JpegIFOffset", // When image format is JPEG, this value show offset to JPEG data stored.(aka "ThumbnailOffset" or "JPEGInterchangeFormat")
+		0x0202: "JpegIFByteCount", // When image format is JPEG, this value shows data size of JPEG image (aka "ThumbnailLength" or "JPEGInterchangeFormatLength")
+		0x0211: "YCbCrCoefficients",
+		0x0212: "YCbCrSubSampling",
+		0x0213: "YCbCrPositioning",
+		0x0214: "ReferenceBlackWhite",
+	}
 
-	// user information
-	0x927c: "MakerNote", // Any desired information written by the manufacturer
-	0x9286: "UserComment", // Comments by user
+	static StringValues = {
+		ExposureProgram: {
+			0: "Not defined",
+			1: "Manual",
+			2: "Normal program",
+			3: "Aperture priority",
+			4: "Shutter priority",
+			5: "Creative program",
+			6: "Action program",
+			7: "Portrait mode",
+			8: "Landscape mode",
+		},
+		MeteringMode: {
+			0: "Unknown",
+			1: "Average",
+			2: "CenterWeightedAverage",
+			3: "Spot",
+			4: "MultiSpot",
+			5: "Pattern",
+			6: "Partial",
+			255: "Other",
+		},
+		LightSource: {
+			0: "Unknown",
+			1: "Daylight",
+			2: "Fluorescent",
+			3: "Tungsten (incandescent light)",
+			4: "Flash",
+			9: "Fine weather",
+			10: "Cloudy weather",
+			11: "Shade",
+			12: "Daylight fluorescent (D 5700 - 7100K)",
+			13: "Day white fluorescent (N 4600 - 5400K)",
+			14: "Cool white fluorescent (W 3900 - 4500K)",
+			15: "White fluorescent (WW 3200 - 3700K)",
+			17: "Standard light A",
+			18: "Standard light B",
+			19: "Standard light C",
+			20: "D55",
+			21: "D65",
+			22: "D75",
+			23: "D50",
+			24: "ISO studio tungsten",
+			255: "Other",
+		},
+		Flash: {
+			0x0000: "Flash did not fire",
+			0x0001: "Flash fired",
+			0x0005: "Strobe return light not detected",
+			0x0007: "Strobe return light detected",
+			0x0009: "Flash fired, compulsory flash mode",
+			0x000d: "Flash fired, compulsory flash mode, return light not detected",
+			0x000f: "Flash fired, compulsory flash mode, return light detected",
+			0x0010: "Flash did not fire, compulsory flash mode",
+			0x0018: "Flash did not fire, auto mode",
+			0x0019: "Flash fired, auto mode",
+			0x001d: "Flash fired, auto mode, return light not detected",
+			0x001f: "Flash fired, auto mode, return light detected",
+			0x0020: "No flash function",
+			0x0041: "Flash fired, red-eye reduction mode",
+			0x0045: "Flash fired, red-eye reduction mode, return light not detected",
+			0x0047: "Flash fired, red-eye reduction mode, return light detected",
+			0x0049: "Flash fired, compulsory flash mode, red-eye reduction mode",
+			0x004d: "Flash fired, compulsory flash mode, red-eye reduction mode, return light not detected",
+			0x004f: "Flash fired, compulsory flash mode, red-eye reduction mode, return light detected",
+			0x0059: "Flash fired, auto mode, red-eye reduction mode",
+			0x005d: "Flash fired, auto mode, return light not detected, red-eye reduction mode",
+			0x005f: "Flash fired, auto mode, return light detected, red-eye reduction mode",
+		},
+		SensingMethod: {
+			1: "Not defined",
+			2: "One-chip color area sensor",
+			3: "Two-chip color area sensor",
+			4: "Three-chip color area sensor",
+			5: "Color sequential area sensor",
+			7: "Trilinear sensor",
+			8: "Color sequential linear sensor",
+		},
+		SceneCaptureType: {
+			0: "Standard",
+			1: "Landscape",
+			2: "Portrait",
+			3: "Night scene",
+		},
+		SceneType: {
+			1: "Directly photographed",
+		},
+		CustomRendered: {
+			0: "Normal process",
+			1: "Custom process",
+		},
+		WhiteBalance: {
+			0: "Auto white balance",
+			1: "Manual white balance",
+		},
+		GainControl: {
+			0: "None",
+			1: "Low gain up",
+			2: "High gain up",
+			3: "Low gain down",
+			4: "High gain down",
+		},
+		Contrast: {
+			0: "Normal",
+			1: "Soft",
+			2: "Hard",
+		},
+		Saturation: {
+			0: "Normal",
+			1: "Low saturation",
+			2: "High saturation",
+		},
+		Sharpness: {
+			0: "Normal",
+			1: "Soft",
+			2: "Hard",
+		},
+		SubjectDistanceRange: {
+			0: "Unknown",
+			1: "Macro",
+			2: "Close view",
+			3: "Distant view",
+		},
+		FileSource: {
+			3: "DSC",
+		},
 
-	// related file
-	0xa004: "RelatedSoundFile", // Name of related sound file
+		Components: {
+			0: "",
+			1: "Y",
+			2: "Cb",
+			3: "Cr",
+			4: "R",
+			5: "G",
+			6: "B",
+		},
+	}
 
-	// date and time
-	0x9003: "DateTimeOriginal", // Date and time when the original image was generated
-	0x9004: "DateTimeDigitized", // Date and time when the image was stored digitally
-	0x9290: "SubsecTime", // Fractions of seconds for DateTime
-	0x9291: "SubsecTimeOriginal", // Fractions of seconds for DateTimeOriginal
-	0x9292: "SubsecTimeDigitized", // Fractions of seconds for DateTimeDigitized
+	addEvent(element, event, handler) {
+		if (element.addEventListener) {
+			element.addEventListener(event, handler, false)
+		} else if (element.attachEvent) {
+			element.attachEvent("on" + event, handler)
+		}
+	}
 
-	// picture-taking conditions
-	0x829a: "ExposureTime", // Exposure time (in seconds)
-	0x829d: "FNumber", // F number
-	0x8822: "ExposureProgram", // Exposure program
-	0x8824: "SpectralSensitivity", // Spectral sensitivity
-	0x8827: "ISOSpeedRatings", // ISO speed rating
-	0x8828: "OECF", // Optoelectric conversion factor
-	0x9201: "ShutterSpeedValue", // Shutter speed
-	0x9202: "ApertureValue", // Lens aperture
-	0x9203: "BrightnessValue", // Value of brightness
-	0x9204: "ExposureBias", // Exposure bias
-	0x9205: "MaxApertureValue", // Smallest F number of lens
-	0x9206: "SubjectDistance", // Distance to subject in meters
-	0x9207: "MeteringMode", // Metering mode
-	0x9208: "LightSource", // Kind of light source
-	0x9209: "Flash", // Flash status
-	0x9214: "SubjectArea", // Location and area of main subject
-	0x920a: "FocalLength", // Focal length of the lens in mm
-	0xa20b: "FlashEnergy", // Strobe energy in BCPS
-	0xa20c: "SpatialFrequencyResponse", //
-	0xa20e: "FocalPlaneXResolution", // Number of pixels in width direction per FocalPlaneResolutionUnit
-	0xa20f: "FocalPlaneYResolution", // Number of pixels in height direction per FocalPlaneResolutionUnit
-	0xa210: "FocalPlaneResolutionUnit", // Unit for measuring FocalPlaneXResolution and FocalPlaneYResolution
-	0xa214: "SubjectLocation", // Location of subject in image
-	0xa215: "ExposureIndex", // Exposure index selected on camera
-	0xa217: "SensingMethod", // Image sensor type
-	0xa300: "FileSource", // Image source (3 == DSC)
-	0xa301: "SceneType", // Scene type (1 == directly photographed)
-	0xa302: "CFAPattern", // Color filter array geometric pattern
-	0xa401: "CustomRendered", // Special processing
-	0xa402: "ExposureMode", // Exposure mode
-	0xa403: "WhiteBalance", // 1 = auto white balance, 2 = manual
-	0xa404: "DigitalZoomRation", // Digital zoom ratio
-	0xa405: "FocalLengthIn35mmFilm", // Equivalent foacl length assuming 35mm film camera (in mm)
-	0xa406: "SceneCaptureType", // Type of scene
-	0xa407: "GainControl", // Degree of overall image gain adjustment
-	0xa408: "Contrast", // Direction of contrast processing applied by camera
-	0xa409: "Saturation", // Direction of saturation processing applied by camera
-	0xa40a: "Sharpness", // Direction of sharpness processing applied by camera
-	0xa40b: "DeviceSettingDescription", //
-	0xa40c: "SubjectDistanceRange", // Distance to subject
+	enableXmp() {
+		this.isXmpEnabled = true
+	}
 
-	// other tags
-	0xa005: "InteroperabilityIFDPointer",
-	0xa420: "ImageUniqueID", // Identifier assigned uniquely to each image
-})
+	disableXmp() {
+		this.isXmpEnabled = false
+	}
 
-const TiffTags = (EXIF.TiffTags = {
-	0x0100: "ImageWidth",
-	0x0101: "ImageHeight",
-	0x8769: "ExifIFDPointer",
-	0x8825: "GPSInfoIFDPointer",
-	0xa005: "InteroperabilityIFDPointer",
-	0x0102: "BitsPerSample",
-	0x0103: "Compression",
-	0x0106: "PhotometricInterpretation",
-	0x0112: "Orientation",
-	0x0115: "SamplesPerPixel",
-	0x011c: "PlanarConfiguration",
-	0x0212: "YCbCrSubSampling",
-	0x0213: "YCbCrPositioning",
-	0x011a: "XResolution",
-	0x011b: "YResolution",
-	0x0128: "ResolutionUnit",
-	0x0111: "StripOffsets",
-	0x0116: "RowsPerStrip",
-	0x0117: "StripByteCounts",
-	0x0201: "JPEGInterchangeFormat",
-	0x0202: "JPEGInterchangeFormatLength",
-	0x012d: "TransferFunction",
-	0x013e: "WhitePoint",
-	0x013f: "PrimaryChromaticities",
-	0x0211: "YCbCrCoefficients",
-	0x0214: "ReferenceBlackWhite",
-	0x0132: "DateTime",
-	0x010e: "ImageDescription",
-	0x010f: "Make",
-	0x0110: "Model",
-	0x0131: "Software",
-	0x013b: "Artist",
-	0x8298: "Copyright",
-})
+	getData(img, callback) {
+		if (
+			((self.Image && img instanceof self.Image) ||
+				(self.HTMLImageElement && img instanceof self.HTMLImageElement)) &&
+			!img.complete
+		) {
+			return false
+		}
 
-const GPSTags = (EXIF.GPSTags = {
-	0x0000: "GPSVersionID",
-	0x0001: "GPSLatitudeRef",
-	0x0002: "GPSLatitude",
-	0x0003: "GPSLongitudeRef",
-	0x0004: "GPSLongitude",
-	0x0005: "GPSAltitudeRef",
-	0x0006: "GPSAltitude",
-	0x0007: "GPSTimeStamp",
-	0x0008: "GPSSatellites",
-	0x0009: "GPSStatus",
-	0x000a: "GPSMeasureMode",
-	0x000b: "GPSDOP",
-	0x000c: "GPSSpeedRef",
-	0x000d: "GPSSpeed",
-	0x000e: "GPSTrackRef",
-	0x000f: "GPSTrack",
-	0x0010: "GPSImgDirectionRef",
-	0x0011: "GPSImgDirection",
-	0x0012: "GPSMapDatum",
-	0x0013: "GPSDestLatitudeRef",
-	0x0014: "GPSDestLatitude",
-	0x0015: "GPSDestLongitudeRef",
-	0x0016: "GPSDestLongitude",
-	0x0017: "GPSDestBearingRef",
-	0x0018: "GPSDestBearing",
-	0x0019: "GPSDestDistanceRef",
-	0x001a: "GPSDestDistance",
-	0x001b: "GPSProcessingMethod",
-	0x001c: "GPSAreaInformation",
-	0x001d: "GPSDateStamp",
-	0x001e: "GPSDifferential",
-})
+		if (!imageHasData(img)) {
+			getImageData(img, callback)
+		} else {
+			if (callback) {
+				callback.call(img)
+			}
+		}
 
-// EXIF 2.3 Spec
-const IFD1Tags = (EXIF.IFD1Tags = {
-	0x0100: "ImageWidth",
-	0x0101: "ImageHeight",
-	0x0102: "BitsPerSample",
-	0x0103: "Compression",
-	0x0106: "PhotometricInterpretation",
-	0x0111: "StripOffsets",
-	0x0112: "Orientation",
-	0x0115: "SamplesPerPixel",
-	0x0116: "RowsPerStrip",
-	0x0117: "StripByteCounts",
-	0x011a: "XResolution",
-	0x011b: "YResolution",
-	0x011c: "PlanarConfiguration",
-	0x0128: "ResolutionUnit",
-	0x0201: "JpegIFOffset", // When image format is JPEG, this value show offset to JPEG data stored.(aka "ThumbnailOffset" or "JPEGInterchangeFormat")
-	0x0202: "JpegIFByteCount", // When image format is JPEG, this value shows data size of JPEG image (aka "ThumbnailLength" or "JPEGInterchangeFormatLength")
-	0x0211: "YCbCrCoefficients",
-	0x0212: "YCbCrSubSampling",
-	0x0213: "YCbCrPositioning",
-	0x0214: "ReferenceBlackWhite",
-})
+		return true
+	}
 
-const StringValues = (EXIF.StringValues = {
-	ExposureProgram: {
-		0: "Not defined",
-		1: "Manual",
-		2: "Normal program",
-		3: "Aperture priority",
-		4: "Shutter priority",
-		5: "Creative program",
-		6: "Action program",
-		7: "Portrait mode",
-		8: "Landscape mode",
-	},
-	MeteringMode: {
-		0: "Unknown",
-		1: "Average",
-		2: "CenterWeightedAverage",
-		3: "Spot",
-		4: "MultiSpot",
-		5: "Pattern",
-		6: "Partial",
-		255: "Other",
-	},
-	LightSource: {
-		0: "Unknown",
-		1: "Daylight",
-		2: "Fluorescent",
-		3: "Tungsten (incandescent light)",
-		4: "Flash",
-		9: "Fine weather",
-		10: "Cloudy weather",
-		11: "Shade",
-		12: "Daylight fluorescent (D 5700 - 7100K)",
-		13: "Day white fluorescent (N 4600 - 5400K)",
-		14: "Cool white fluorescent (W 3900 - 4500K)",
-		15: "White fluorescent (WW 3200 - 3700K)",
-		17: "Standard light A",
-		18: "Standard light B",
-		19: "Standard light C",
-		20: "D55",
-		21: "D65",
-		22: "D75",
-		23: "D50",
-		24: "ISO studio tungsten",
-		255: "Other",
-	},
-	Flash: {
-		0x0000: "Flash did not fire",
-		0x0001: "Flash fired",
-		0x0005: "Strobe return light not detected",
-		0x0007: "Strobe return light detected",
-		0x0009: "Flash fired, compulsory flash mode",
-		0x000d: "Flash fired, compulsory flash mode, return light not detected",
-		0x000f: "Flash fired, compulsory flash mode, return light detected",
-		0x0010: "Flash did not fire, compulsory flash mode",
-		0x0018: "Flash did not fire, auto mode",
-		0x0019: "Flash fired, auto mode",
-		0x001d: "Flash fired, auto mode, return light not detected",
-		0x001f: "Flash fired, auto mode, return light detected",
-		0x0020: "No flash function",
-		0x0041: "Flash fired, red-eye reduction mode",
-		0x0045: "Flash fired, red-eye reduction mode, return light not detected",
-		0x0047: "Flash fired, red-eye reduction mode, return light detected",
-		0x0049: "Flash fired, compulsory flash mode, red-eye reduction mode",
-		0x004d: "Flash fired, compulsory flash mode, red-eye reduction mode, return light not detected",
-		0x004f: "Flash fired, compulsory flash mode, red-eye reduction mode, return light detected",
-		0x0059: "Flash fired, auto mode, red-eye reduction mode",
-		0x005d: "Flash fired, auto mode, return light not detected, red-eye reduction mode",
-		0x005f: "Flash fired, auto mode, return light detected, red-eye reduction mode",
-	},
-	SensingMethod: {
-		1: "Not defined",
-		2: "One-chip color area sensor",
-		3: "Two-chip color area sensor",
-		4: "Three-chip color area sensor",
-		5: "Color sequential area sensor",
-		7: "Trilinear sensor",
-		8: "Color sequential linear sensor",
-	},
-	SceneCaptureType: {
-		0: "Standard",
-		1: "Landscape",
-		2: "Portrait",
-		3: "Night scene",
-	},
-	SceneType: {
-		1: "Directly photographed",
-	},
-	CustomRendered: {
-		0: "Normal process",
-		1: "Custom process",
-	},
-	WhiteBalance: {
-		0: "Auto white balance",
-		1: "Manual white balance",
-	},
-	GainControl: {
-		0: "None",
-		1: "Low gain up",
-		2: "High gain up",
-		3: "Low gain down",
-		4: "High gain down",
-	},
-	Contrast: {
-		0: "Normal",
-		1: "Soft",
-		2: "Hard",
-	},
-	Saturation: {
-		0: "Normal",
-		1: "Low saturation",
-		2: "High saturation",
-	},
-	Sharpness: {
-		0: "Normal",
-		1: "Soft",
-		2: "Hard",
-	},
-	SubjectDistanceRange: {
-		0: "Unknown",
-		1: "Macro",
-		2: "Close view",
-		3: "Distant view",
-	},
-	FileSource: {
-		3: "DSC",
-	},
+	getTag(img, tag) {
+		if (imageHasData(img)) {
+			return img.exifdata[tag]
+		}
+	}
 
-	Components: {
-		0: "",
-		1: "Y",
-		2: "Cb",
-		3: "Cr",
-		4: "R",
-		5: "G",
-		6: "B",
-	},
-})
+	getIptcTag(img, tag) {
+		if (imageHasData(img)) {
+			return img.iptcdata[tag]
+		}
+	}
 
-function addEvent(element, event, handler) {
-	if (element.addEventListener) {
-		element.addEventListener(event, handler, false)
-	} else if (element.attachEvent) {
-		element.attachEvent("on" + event, handler)
+	getAllTags(img) {
+		if (!imageHasData(img)) {
+			return {}
+		}
+
+		const data = img.exifdata
+		const tags = {}
+		let a
+
+		for (a in data) {
+			if (data.hasOwnProperty(a)) {
+				tags[a] = data[a]
+			}
+		}
+		return tags
+	}
+
+	getAllIptcTags(img) {
+		if (!imageHasData(img)) {
+			return {}
+		}
+
+		const data = img.iptcdata
+		const tags = {}
+		let a
+
+		for (a in data) {
+			if (data.hasOwnProperty(a)) {
+				tags[a] = data[a]
+			}
+		}
+		return tags
+	}
+
+	pretty(img) {
+		if (!imageHasData(img)) {
+			return ""
+		}
+
+		const data = img.exifdata
+		let strPretty = ""
+		let a
+
+		for (a in data) {
+			if (data.hasOwnProperty(a)) {
+				if (typeof data[a] === "object") {
+					if (data[a] instanceof Number) {
+						strPretty += a + " : " + data[a] + " [" + data[a].numerator + "/" + data[a].denominator +
+							"]\r\n"
+					} else {
+						strPretty += a + " : [" + data[a].length + " values]\r\n"
+					}
+				} else {
+					strPretty += a + " : " + data[a] + "\r\n"
+				}
+			}
+		}
+		return strPretty
+	}
+
+	readFromBinaryFile(file) {
+		return findEXIFinJPEG(file)
 	}
 }
 
@@ -335,10 +425,12 @@ function imageHasData(img) {
 function base64ToArrayBuffer(base64, contentType) {
 	contentType = contentType || base64.match(/^data\:([^\;]+)\;base64,/im)[1] || "" // e.g. 'data:image/jpeg;base64,...' => 'image/jpeg'
 	base64 = base64.replace(/^data\:([^\;]+)\;base64,/gim, "")
-	let binary = atob(base64)
-	let len = binary.length
-	let buffer = new ArrayBuffer(len)
-	let view = new Uint8Array(buffer)
+
+	const binary = atob(base64)
+	const len = binary.length
+	const buffer = new ArrayBuffer(len)
+	const view = new Uint8Array(buffer)
+
 	for (let i = 0; i < len; i++) {
 		view[i] = binary.charCodeAt(i)
 	}
@@ -346,14 +438,17 @@ function base64ToArrayBuffer(base64, contentType) {
 }
 
 function objectURLToBlob(url, callback) {
-	let http = new XMLHttpRequest()
+	const http = new XMLHttpRequest()
+
 	http.open("GET", url, true)
 	http.responseType = "blob"
-	http.onload = function (e) {
-		if (this.status == 200 || this.status === 0) {
+
+	http.addEventListener("load", () => {
+		if (this.status === 200 || this.status === 0) {
 			callback(this.response)
 		}
-	}
+	})
+
 	http.send()
 }
 
@@ -375,11 +470,11 @@ function getImageData(img, callback) {
 	if (img.src) {
 		if (/^data\:/i.test(img.src)) {
 			// Data URI
-			let arrayBuffer = base64ToArrayBuffer(img.src)
+			const arrayBuffer = base64ToArrayBuffer(img.src)
 			handleBinaryFile(arrayBuffer)
 		} else if (/^blob\:/i.test(img.src)) {
 			// Object URL
-			let fileReader = new FileReader()
+			const fileReader = new FileReader()
 			fileReader.onload = function (e) {
 				handleBinaryFile(e.target.result)
 			}
@@ -388,22 +483,29 @@ function getImageData(img, callback) {
 			})
 		} else {
 			let http = new XMLHttpRequest()
+
 			http.onload = function () {
-				if (this.status == 200 || this.status === 0) {
+				if (this.status === 200 || this.status === 0) {
 					handleBinaryFile(http.response)
 				} else {
 					throw "Could not load image"
 				}
+
 				http = null
 			}
+
 			http.open("GET", img.src, true)
 			http.responseType = "arraybuffer"
 			http.send(null)
 		}
 	} else if (self.FileReader && (img instanceof self.Blob || img instanceof self.File)) {
-		let fileReader = new FileReader()
+		const fileReader = new FileReader()
+
 		fileReader.onload = function (e) {
-			if (debug) console.log("Got file of length " + e.target.result.byteLength)
+			if (debug) {
+				console.log("Got file of length " + e.target.result.byteLength)
+			}
+
 			handleBinaryFile(e.target.result)
 		}
 
@@ -412,20 +514,26 @@ function getImageData(img, callback) {
 }
 
 function findEXIFinJPEG(file) {
-	let dataView = new DataView(file)
+	const dataView = new DataView(file)
 
-	if (debug) console.log("Got file of length " + file.byteLength)
-	if (dataView.getUint8(0) != 0xff || dataView.getUint8(1) != 0xd8) {
-		if (debug) console.log("Not a valid JPEG")
-		return false // not a valid jpeg
+	if (debug) {
+		console.log("Got file of length " + file.byteLength)
 	}
 
-	let offset = 2,
-		length = file.byteLength,
-		marker
+	if (dataView.getUint8(0) !== 0xff || dataView.getUint8(1) !== 0xd8) {
+		if (debug) {
+			console.log("Not a valid JPEG")
+		}
+
+		return false
+	}
+
+	const length = file.byteLength
+	let offset = 2
+	let marker
 
 	while (offset < length) {
-		if (dataView.getUint8(offset) != 0xff) {
+		if (dataView.getUint8(offset) !== 0xff) {
 			if (debug) {
 				console.log("Not a valid marker at offset " + offset + ", found: " + dataView.getUint8(offset))
 			}
@@ -433,13 +541,18 @@ function findEXIFinJPEG(file) {
 		}
 
 		marker = dataView.getUint8(offset + 1)
-		if (debug) console.log(marker)
+
+		if (debug) {
+			console.log(marker)
+		}
 
 		// we could implement handling for other markers here,
 		// but we're only looking for 0xFFE1 for EXIF data
 
-		if (marker == 225) {
-			if (debug) console.log("Found 0xFFE1 marker")
+		if (marker === 225) {
+			if (debug) {
+				console.log("Found 0xFFE1 marker")
+			}
 
 			return readEXIFData(dataView, offset + 4, dataView.getUint16(offset + 2) - 2)
 
@@ -451,18 +564,18 @@ function findEXIFinJPEG(file) {
 }
 
 function findIPTCinJPEG(file) {
-	let dataView = new DataView(file)
+	const dataView = new DataView(file)
 
 	if (debug) console.log("Got file of length " + file.byteLength)
-	if (dataView.getUint8(0) != 0xff || dataView.getUint8(1) != 0xd8) {
+	if (dataView.getUint8(0) !== 0xff || dataView.getUint8(1) !== 0xd8) {
 		if (debug) console.log("Not a valid JPEG")
 		return false // not a valid jpeg
 	}
 
-	let offset = 2,
-		length = file.byteLength
+	const length = file.byteLength
+	let offset = 2
 
-	let isFieldSegmentStart = function (dataView, offset) {
+	const isFieldSegmentStart = function (dataView, offset) {
 		return (
 			dataView.getUint8(offset) === 0x38 &&
 			dataView.getUint8(offset + 1) === 0x42 &&
@@ -484,12 +597,10 @@ function findIPTCinJPEG(file) {
 				nameHeaderLength = 4
 			}
 
-			let startOffset = offset + 8 + nameHeaderLength
-			let sectionLength = dataView.getUint16(offset + 6 + nameHeaderLength)
+			const startOffset = offset + 8 + nameHeaderLength
+			const sectionLength = dataView.getUint16(offset + 6 + nameHeaderLength)
 
 			return readIPTCData(file, startOffset, sectionLength)
-
-			break
 		}
 
 		// Not the marker, continue searching
@@ -511,18 +622,21 @@ const IptcFieldMap = {
 }
 
 function readIPTCData(file, startOffset, sectionLength) {
-	let dataView = new DataView(file)
-	let data = {}
-	let fieldValue, fieldName, dataSize, segmentType, segmentSize
+	const dataView = new DataView(file)
+	const data = {}
+	let fieldValue, fieldName, dataSize, segmentType
 	let segmentStartPos = startOffset
+
 	while (segmentStartPos < startOffset + sectionLength) {
 		if (dataView.getUint8(segmentStartPos) === 0x1c && dataView.getUint8(segmentStartPos + 1) === 0x02) {
 			segmentType = dataView.getUint8(segmentStartPos + 2)
+
 			if (segmentType in IptcFieldMap) {
 				dataSize = dataView.getInt16(segmentStartPos + 3)
 				segmentSize = dataSize + 5
 				fieldName = IptcFieldMap[segmentType]
 				fieldValue = getStringFromDB(dataView, segmentStartPos + 5, dataSize)
+
 				// Check if we already stored a value with this name
 				if (data.hasOwnProperty(fieldName)) {
 					// Value already stored with this name, create multivalue field
@@ -536,17 +650,16 @@ function readIPTCData(file, startOffset, sectionLength) {
 				}
 			}
 		}
+
 		segmentStartPos++
 	}
 	return data
 }
 
 function readTags(file, tiffStart, dirStart, strings, bigEnd) {
-	let entries = file.getUint16(dirStart, !bigEnd),
-		tags = {},
-		entryOffset,
-		tag,
-		i
+	const entries = file.getUint16(dirStart, !bigEnd)
+	const tags = {}
+	let entryOffset, tag, i
 
 	for (i = 0; i < entries; i++) {
 		entryOffset = dirStart + i * 12 + 2
@@ -557,21 +670,16 @@ function readTags(file, tiffStart, dirStart, strings, bigEnd) {
 	return tags
 }
 
-function readTagValue(file, entryOffset, tiffStart, dirStart, bigEnd) {
-	let type = file.getUint16(entryOffset + 2, !bigEnd),
-		numValues = file.getUint32(entryOffset + 4, !bigEnd),
-		valueOffset = file.getUint32(entryOffset + 8, !bigEnd) + tiffStart,
-		offset,
-		vals,
-		val,
-		n,
-		numerator,
-		denominator
+function readTagValue(file, entryOffset, tiffStart, _dirStart, bigEnd) {
+	const type = file.getUint16(entryOffset + 2, !bigEnd)
+	const numValues = file.getUint32(entryOffset + 4, !bigEnd)
+	const valueOffset = file.getUint32(entryOffset + 8, !bigEnd) + tiffStart
+	let offset, vals, val, n, numerator, denominator
 
 	switch (type) {
 		case 1: // byte, 8-bit unsigned int
 		case 7: // undefined, 8-bit byte, value depending on field
-			if (numValues == 1) {
+			if (numValues === 1) {
 				return file.getUint8(entryOffset + 8, !bigEnd)
 			} else {
 				offset = numValues > 4 ? valueOffset : entryOffset + 8
@@ -587,7 +695,7 @@ function readTagValue(file, entryOffset, tiffStart, dirStart, bigEnd) {
 			return getStringFromDB(file, offset, numValues - 1)
 
 		case 3: // short, 16 bit int
-			if (numValues == 1) {
+			if (numValues === 1) {
 				return file.getUint16(entryOffset + 8, !bigEnd)
 			} else {
 				offset = numValues > 2 ? valueOffset : entryOffset + 8
@@ -599,7 +707,7 @@ function readTagValue(file, entryOffset, tiffStart, dirStart, bigEnd) {
 			}
 
 		case 4: // long, 32 bit int
-			if (numValues == 1) {
+			if (numValues === 1) {
 				return file.getUint32(entryOffset + 8, !bigEnd)
 			} else {
 				vals = []
@@ -610,7 +718,7 @@ function readTagValue(file, entryOffset, tiffStart, dirStart, bigEnd) {
 			}
 
 		case 5: // rational = two long values, first is numerator, second is denominator
-			if (numValues == 1) {
+			if (numValues === 1) {
 				numerator = file.getUint32(valueOffset, !bigEnd)
 				denominator = file.getUint32(valueOffset + 4, !bigEnd)
 				val = new Number(numerator / denominator)
@@ -630,7 +738,7 @@ function readTagValue(file, entryOffset, tiffStart, dirStart, bigEnd) {
 			}
 
 		case 9: // slong, 32 bit signed int
-			if (numValues == 1) {
+			if (numValues === 1) {
 				return file.getInt32(entryOffset + 8, !bigEnd)
 			} else {
 				vals = []
@@ -641,7 +749,7 @@ function readTagValue(file, entryOffset, tiffStart, dirStart, bigEnd) {
 			}
 
 		case 10: // signed rational, two slongs, first is numerator, second is denominator
-			if (numValues == 1) {
+			if (numValues === 1) {
 				return file.getInt32(valueOffset, !bigEnd) / file.getInt32(valueOffset + 4, !bigEnd)
 			} else {
 				vals = []
@@ -660,7 +768,7 @@ function readTagValue(file, entryOffset, tiffStart, dirStart, bigEnd) {
  */
 function getNextIFDOffset(dataView, dirStart, bigEnd) {
 	//the first 2bytes means the number of directory entries contains in this IFD
-	let entries = dataView.getUint16(dirStart, !bigEnd)
+	const entries = dataView.getUint16(dirStart, !bigEnd)
 
 	// After last directory entry, there is a 4bytes of data,
 	// it means an offset to next IFD.
@@ -671,7 +779,7 @@ function getNextIFDOffset(dataView, dirStart, bigEnd) {
 
 function readThumbnailImage(dataView, tiffStart, firstIFDOffset, bigEnd) {
 	// get the IFD1 offset
-	let IFD1OffsetPointer = getNextIFDOffset(dataView, tiffStart + firstIFDOffset, bigEnd)
+	const IFD1OffsetPointer = getNextIFDOffset(dataView, tiffStart + firstIFDOffset, bigEnd)
 
 	if (!IFD1OffsetPointer) {
 		// console.log('******** IFD1Offset is empty, image thumb not found ********');
@@ -683,7 +791,7 @@ function readThumbnailImage(dataView, tiffStart, firstIFDOffset, bigEnd) {
 	}
 	// console.log('*******  thumbnail IFD offset (IFD1) is: %s', IFD1OffsetPointer);
 
-	let thumbTags = readTags(dataView, tiffStart, tiffStart + IFD1OffsetPointer, IFD1Tags, bigEnd)
+	const thumbTags = readTags(dataView, tiffStart, tiffStart + IFD1OffsetPointer, IFD1Tags, bigEnd)
 
 	// EXIF 2.3 specification for JPEG format thumbnail
 
@@ -701,8 +809,8 @@ function readThumbnailImage(dataView, tiffStart, firstIFDOffset, bigEnd) {
 				// console.log('Thumbnail image format is JPEG');
 				if (thumbTags.JpegIFOffset && thumbTags.JpegIFByteCount) {
 					// extract the thumbnail
-					let tOffset = tiffStart + thumbTags.JpegIFOffset
-					let tLength = thumbTags.JpegIFByteCount
+					const tOffset = tiffStart + thumbTags.JpegIFOffset
+					const tLength = thumbTags.JpegIFByteCount
 					thumbTags["blob"] = new Blob([new Uint8Array(dataView.buffer, tOffset, tLength)], {
 						type: "image/jpeg",
 					})
@@ -715,7 +823,7 @@ function readThumbnailImage(dataView, tiffStart, firstIFDOffset, bigEnd) {
 			default:
 				console.log("Unknown thumbnail image format '%s'", thumbTags["Compression"])
 		}
-	} else if (thumbTags["PhotometricInterpretation"] == 2) {
+	} else if (thumbTags["PhotometricInterpretation"] === 2) {
 		console.log("Thumbnail image format is RGB, which is not implemented.")
 	}
 	return thumbTags
@@ -730,34 +838,30 @@ function getStringFromDB(buffer, start, length) {
 }
 
 function readEXIFData(file, start) {
-	if (getStringFromDB(file, start, 4) != "Exif") {
+	if (getStringFromDB(file, start, 4) !== "Exif") {
 		if (debug) console.log("Not valid EXIF data! " + getStringFromDB(file, start, 4))
 		return false
 	}
 
-	let bigEnd,
-		tags,
-		tag,
-		exifData,
-		gpsData,
-		tiffOffset = start + 6
+	const tiffOffset = start + 6
+	let bigEnd, tags, tag, exifData, gpsData
 
 	// test for TIFF validity and endianness
-	if (file.getUint16(tiffOffset) == 0x4949) {
+	if (file.getUint16(tiffOffset) === 0x4949) {
 		bigEnd = false
-	} else if (file.getUint16(tiffOffset) == 0x4d4d) {
+	} else if (file.getUint16(tiffOffset) === 0x4d4d) {
 		bigEnd = true
 	} else {
 		if (debug) console.log("Not valid TIFF data! (no 0x4949 or 0x4D4D)")
 		return false
 	}
 
-	if (file.getUint16(tiffOffset + 2, !bigEnd) != 0x002a) {
+	if (file.getUint16(tiffOffset + 2, !bigEnd) !== 0x002a) {
 		if (debug) console.log("Not valid TIFF data! (no 0x002A)")
 		return false
 	}
 
-	let firstIFDOffset = file.getUint32(tiffOffset + 4, !bigEnd)
+	const firstIFDOffset = file.getUint32(tiffOffset + 4, !bigEnd)
 
 	if (firstIFDOffset < 0x00000008) {
 		if (debug) {
@@ -835,27 +939,28 @@ function findXMPinJPEG(file) {
 		// console.warn('XML parsing not supported without DOMParser');
 		return
 	}
-	let dataView = new DataView(file)
+
+	const dataView = new DataView(file)
 
 	if (debug) console.log("Got file of length " + file.byteLength)
-	if (dataView.getUint8(0) != 0xff || dataView.getUint8(1) != 0xd8) {
+	if (dataView.getUint8(0) !== 0xff || dataView.getUint8(1) !== 0xd8) {
 		if (debug) console.log("Not a valid JPEG")
 		return false // not a valid jpeg
 	}
 
-	let offset = 2,
-		length = file.byteLength,
-		dom = new DOMParser()
+	let offset = 2
+	const length = file.byteLength
+	const dom = new DOMParser()
 
 	while (offset < length - 4) {
-		if (getStringFromDB(dataView, offset, 4) == "http") {
-			let startOffset = offset - 1
-			let sectionLength = dataView.getUint16(offset - 2) - 1
+		if (getStringFromDB(dataView, offset, 4) === "http") {
+			const startOffset = offset - 1
+			const sectionLength = dataView.getUint16(offset - 2) - 1
 			let xmpString = getStringFromDB(dataView, startOffset, sectionLength)
-			let xmpEndIndex = xmpString.indexOf("xmpmeta>") + 8
+			const xmpEndIndex = xmpString.indexOf("xmpmeta>") + 8
 			xmpString = xmpString.substring(xmpString.indexOf("<x:xmpmeta"), xmpEndIndex)
 
-			let indexOfXmp = xmpString.indexOf("x:xmpmeta") + 10
+			const indexOfXmp = xmpString.indexOf("x:xmpmeta") + 10
 			//Many custom written programs embed xmp/xml without any namespace. Following are some of them.
 			//Without these namespaces, XML is thought to be invalid by parsers
 			xmpString = xmpString.slice(0, indexOfXmp) +
@@ -872,7 +977,7 @@ function findXMPinJPEG(file) {
 				'xmlns:Iptc4xmpExt="http://iptc.org/std/Iptc4xmpExt/2008-02-29/" ' +
 				xmpString.slice(indexOfXmp)
 
-			let domDocument = dom.parseFromString(xmpString, "text/xml")
+			const domDocument = dom.parseFromString(xmpString, "text/xml")
 			return xml2Object(domDocument)
 		} else {
 			offset++
@@ -881,18 +986,18 @@ function findXMPinJPEG(file) {
 }
 
 function xml2json(xml) {
-	let json = {}
+	const json = {}
 
-	if (xml.nodeType == 1) {
+	if (xml.nodeType === 1) {
 		// element node
 		if (xml.attributes.length > 0) {
 			json["@attributes"] = {}
 			for (let j = 0; j < xml.attributes.length; j++) {
-				let attribute = xml.attributes.item(j)
+				const attribute = xml.attributes.item(j)
 				json["@attributes"][attribute.nodeName] = attribute.nodeValue
 			}
 		}
-	} else if (xml.nodeType == 3) {
+	} else if (xml.nodeType === 3) {
 		// text node
 		return xml.nodeValue
 	}
@@ -900,13 +1005,13 @@ function xml2json(xml) {
 	// deal with children
 	if (xml.hasChildNodes()) {
 		for (let i = 0; i < xml.childNodes.length; i++) {
-			let child = xml.childNodes.item(i)
-			let nodeName = child.nodeName
-			if (json[nodeName] == null) {
+			const child = xml.childNodes.item(i)
+			const nodeName = child.nodeName
+			if (json[nodeName] === null) {
 				json[nodeName] = xml2json(child)
 			} else {
-				if (json[nodeName].push == null) {
-					let old = json[nodeName]
+				if (json[nodeName].push === null) {
+					const old = json[nodeName]
 					json[nodeName] = []
 					json[nodeName].push(old)
 				}
@@ -923,24 +1028,26 @@ function xml2Object(xml) {
 		let obj = {}
 		if (xml.children.length > 0) {
 			for (let i = 0; i < xml.children.length; i++) {
-				let item = xml.children.item(i)
-				let attributes = item.attributes
-				for (let idx in attributes) {
-					let itemAtt = attributes[idx]
-					let dataKey = itemAtt.nodeName
-					let dataValue = itemAtt.nodeValue
+				const item = xml.children.item(i)
+				const attributes = item.attributes
+
+				for (const idx in attributes) {
+					const itemAtt = attributes[idx]
+					const dataKey = itemAtt.nodeName
+					const dataValue = itemAtt.nodeValue
 
 					if (dataKey !== undefined) {
 						obj[dataKey] = dataValue
 					}
 				}
-				let nodeName = item.nodeName
 
-				if (typeof obj[nodeName] == "undefined") {
+				const nodeName = item.nodeName
+
+				if (typeof obj[nodeName] === "undefined") {
 					obj[nodeName] = xml2json(item)
 				} else {
-					if (typeof obj[nodeName].push == "undefined") {
-						let old = obj[nodeName]
+					if (typeof obj[nodeName].push === "undefined") {
+						const old = obj[nodeName]
 
 						obj[nodeName] = []
 						obj[nodeName].push(old)
@@ -955,99 +1062,4 @@ function xml2Object(xml) {
 	} catch (e) {
 		console.log(e.message)
 	}
-}
-
-EXIF.enableXmp = function () {
-	EXIF.isXmpEnabled = true
-}
-
-EXIF.disableXmp = function () {
-	EXIF.isXmpEnabled = false
-}
-
-EXIF.getData = function (img, callback) {
-	if (
-		((self.Image && img instanceof self.Image) ||
-			(self.HTMLImageElement && img instanceof self.HTMLImageElement)) &&
-		!img.complete
-	) {
-		return false
-	}
-
-	if (!imageHasData(img)) {
-		getImageData(img, callback)
-	} else {
-		if (callback) {
-			callback.call(img)
-		}
-	}
-	return true
-}
-
-EXIF.getTag = function (img, tag) {
-	if (!imageHasData(img)) return
-	return img.exifdata[tag]
-}
-
-EXIF.getIptcTag = function (img, tag) {
-	if (!imageHasData(img)) return
-	return img.iptcdata[tag]
-}
-
-EXIF.getAllTags = function (img) {
-	if (!imageHasData(img)) return {}
-	let a,
-		data = img.exifdata,
-		tags = {}
-	for (a in data) {
-		if (data.hasOwnProperty(a)) {
-			tags[a] = data[a]
-		}
-	}
-	return tags
-}
-
-EXIF.getAllIptcTags = function (img) {
-	if (!imageHasData(img)) return {}
-	let a,
-		data = img.iptcdata,
-		tags = {}
-	for (a in data) {
-		if (data.hasOwnProperty(a)) {
-			tags[a] = data[a]
-		}
-	}
-	return tags
-}
-
-EXIF.pretty = function (img) {
-	if (!imageHasData(img)) return ""
-	let a,
-		data = img.exifdata,
-		strPretty = ""
-	for (a in data) {
-		if (data.hasOwnProperty(a)) {
-			if (typeof data[a] == "object") {
-				if (data[a] instanceof Number) {
-					strPretty += a + " : " + data[a] + " [" + data[a].numerator + "/" + data[a].denominator +
-						"]\r\n"
-				} else {
-					strPretty += a + " : [" + data[a].length + " values]\r\n"
-				}
-			} else {
-				strPretty += a + " : " + data[a] + "\r\n"
-			}
-		}
-	}
-	return strPretty
-}
-
-EXIF.readFromBinaryFile = function (file) {
-	return findEXIFinJPEG(file)
-}
-
-if (typeof define === "function" && define.amd) {
-	define("exif-js", [], function () {
-		return EXIF
-	})
 }
