@@ -26,7 +26,6 @@
 				"no-implicit-declare-namespace-export",
 				"no-const-assign",
 				"no-eval",
-				"no-console",
 				"eqeqeq",
 				"no-await-in-loop",
 				"default-param-last"
