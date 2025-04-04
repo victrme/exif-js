@@ -24,11 +24,5 @@
 			"default": "./exif.js",
 			"types": "./exif.d.ts"
 		}
-	},
-	"prettier": {
-		"printWidth": 120,
-		"useTabs": true,
-		"tabWidth": 4,
-		"semi": false
 	}
 }

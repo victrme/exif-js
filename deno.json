@@ -1,0 +1,37 @@
+{
+	"name": "@victr/exif-js",
+	"version": "0.0.0",
+	"exports": "./exif.js",
+	"tasks": {
+		"dev": "deno -v"
+	},
+	"fmt": {
+		"indentWidth": 4,
+		"lineWidth": 120,
+		"useTabs": true,
+		"semiColons": false,
+		"singleQuote": false
+	},
+	"lint": {
+		"rules": {
+			"tags": [
+				"recommended"
+			],
+			"include": [
+				"prefer-ascii",
+				"no-useless-rename",
+				"no-non-null-assertion",
+				"no-inferrable-types",
+				"no-boolean-literal-for-arguments",
+				"no-implicit-declare-namespace-export",
+				"no-const-assign",
+				"no-eval",
+				"no-console",
+				"eqeqeq",
+				"no-await-in-loop",
+				"default-param-last"
+			]
+		}
+	},
+	"$schema": "https://deno.land/x/deno/cli/schemas/config-file.v1.json"
+}
