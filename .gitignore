@@ -1,5 +1,3 @@
-.*.swp
 .DS_Store
-/.vimproject
-/Session.vim
+/dist
 /node_modules
