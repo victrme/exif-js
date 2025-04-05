@@ -22,7 +22,6 @@
 				"no-useless-rename",
 				"no-non-null-assertion",
 				"no-inferrable-types",
-				"no-boolean-literal-for-arguments",
 				"no-implicit-declare-namespace-export",
 				"no-const-assign",
 				"no-eval",
