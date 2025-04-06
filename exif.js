@@ -1,110 +1,129 @@
+/**
+ * A tool for reading EXIF metadata from image files.
+ */
 export class Exifjs {
-	addEvent(element, event, handler) {
-		if (element.addEventListener) {
-			element.addEventListener(event, handler, false)
-		} else if (element.attachEvent) {
-			element.attachEvent("on" + event, handler)
-		}
-	}
+	xmpEnabled = false
 
-	enableXmp() {
-		isXmpEnabled = true
-	}
-
-	disableXmp() {
-		isXmpEnabled = false
-	}
-
-	async getData(img) {
-		// if (
-		// 	((self.Image && img instanceof self.Image) ||
-		// 		(self.HTMLImageElement && img instanceof self.HTMLImageElement)) &&
-		// 	!img.complete
-		// ) {
-		// 	return false
-		// }
-
-		return await getImageData(img)
-	}
-
-	getTag(img, tag) {
-		if (imageHasData(img)) {
-			return img.exifdata[tag]
-		}
-	}
-
-	getIptcTag(img, tag) {
-		if (imageHasData(img)) {
-			return img.iptcdata[tag]
-		}
-	}
-
-	getAllTags(img) {
-		if (!imageHasData(img)) {
-			return {}
-		}
-
-		const data = img.exifdata
-		const tags = {}
-		let a
-
-		for (a in data) {
-			if (a in data) {
-				tags[a] = data[a]
-			}
-		}
-
-		return tags
-	}
-
-	getAllIptcTags(img) {
-		if (!imageHasData(img)) {
-			return {}
-		}
-
-		const data = img.iptcdata
-		const tags = {}
-		let a
-
-		for (a in data) {
-			if (a in data) {
-				tags[a] = data[a]
-			}
-		}
-		return tags
+	/**
+	 * @type {{ exif: object, iptc: object, xmp?: object }}
+	 */
+	lastData = {
+		exif: {},
+		iptc: {},
+		xmp: undefined,
 	}
 
 	/**
+	 * @param {object} options
+	 * @param {boolean} [options.xmp]
+	 */
+	constructor(options = {}) {
+		if (options.xmp !== undefined) {
+			this.xmpEnabled = options.xmp
+		}
+	}
+
+	/**
+	 * Retreive EXIF, IPTC, & XML info for an image
+	 * @param {Image} img
+	 * @returns {{ exif: object, iptc: object, xmp?: object }}
+	 */
+	async getData(img) {
+		const domExists = globalThis.HTMLImageElement && globalThis.Image
+		const imgIsImage = img instanceof globalThis.HTMLImageElement && img instanceof globalThis.Image
+		const imgIsReady = img.complete
+
+		if (!domExists) {
+			throw new Error("No access to DOM")
+		}
+		if (!imgIsImage) {
+			throw new Error("Not an image")
+		}
+		if (!imgIsReady) {
+			throw new Error("Image is not ready")
+		}
+
+		lastData = await getImageData(img)
+
+		return this.lastData
+	}
+
+	/**
+	 * Get a single tag from the EXIF list
+	 * @param {string} tag
+	 * @returns {string}
+	 */
+	getTag(tag) {
+		return this.lastData.exifdata[tag]
+	}
+
+	/**
+	 * Get a single tag from the IPTC list
+	 * @param {string} tag
+	 * @returns {string}
+	 */
+	getIptcTag(tag) {
+		if (this.lastData) {
+			return this.lastData.iptc[tag]
+		}
+	}
+
+	/**
+	 * Get all EXIF info
+	 * @returns {object}
+	 */
+	getAllTags() {
+		if (!this.lastData) {
+			return {}
+		}
+
+		return this.lastData.exif
+	}
+
+	/**
+	 * Get all IPTC info
+	 * @returns {object}
+	 */
+	getAllIptcTags() {
+		if (!this.lastData) {
+			return {}
+		}
+
+		return this.lastData.iptc
+	}
+
+	/**
+	 * Returns data as a pretty JSON string
 	 * @param {Image} img
 	 * @returns {string}
 	 */
-	pretty(img) {
-		if (!imageHasData(img)) {
+	pretty() {
+		if (!this.lastData) {
 			return ""
 		}
 
-		const data = img.exifdata
+		const data = this.lastData
 		let strPretty = ""
 		let a
 
 		for (a in data) {
-			if (a in data) {
-				if (typeof data[a] === "object") {
-					if (data[a] instanceof Number) {
-						strPretty += a + " : " + data[a] + " [" + data[a].numerator + "/" + data[a].denominator +
-							"]\r\n"
-					} else {
-						strPretty += a + " : [" + data[a].length + " values]\r\n"
-					}
+			if (typeof data[a] === "object") {
+				if (data[a] instanceof Number) {
+					strPretty += a + " : " + data[a] + " [" + data[a].numerator + "/" + data[a].denominator +
+						"]\r\n"
 				} else {
-					strPretty += a + " : " + data[a] + "\r\n"
+					strPretty += a + " : [" + data[a].length + " values]\r\n"
 				}
+			} else {
+				strPretty += a + " : " + data[a] + "\r\n"
 			}
 		}
+
 		return strPretty
 	}
 
 	/**
+	 * Can get data directly from a File
 	 * @param {File} file
 	 * @returns {object}
 	 */
