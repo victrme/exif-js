@@ -15,7 +15,7 @@ export class Exifjs {
 		isXmpEnabled = false
 	}
 
-	getData(img, callback) {
+	async getData(img, callback) {
 		// if (
 		// 	((self.Image && img instanceof self.Image) ||
 		// 		(self.HTMLImageElement && img instanceof self.HTMLImageElement)) &&
@@ -448,38 +448,38 @@ function objectURLToBlob(url, callback) {
 	})
 }
 
-function getImageData(img, callback) {
+/**
+ * @param {Image} img
+ * @returns {Promise<any>}
+ */
+async function getImageData(img) {
 	if (img.src) {
 		if (img.src.startsWith("data:")) {
 			const arrayBuffer = base64ToArrayBuffer(img.src)
-			handleBinaryFile(img, callback, arrayBuffer)
-
-			return
+			return handleBinaryFile(arrayBuffer)
 		}
 
 		if (img.src.startsWith("blob:")) {
 			const fileReader = new FileReader()
 
-			fileReader.onload = function (e) {
-				handleBinaryFile(img, callback, e.target.result)
-			}
+			fileReader.addEventListener("load", function (event) {
+				const response = handleBinaryFile(event.target.result)
+			})
 
 			objectURLToBlob(img.src, function (blob) {
 				fileReader.readAsArrayBuffer(blob)
 			})
 
-			return
+			return {}
 		}
 
-		fetch(img.src).then((resp) => {
-			resp.arrayBuffer().then((buffer) => {
-				if (resp.status === 200 || resp.status === 0) {
-					handleBinaryFile(img, callback, buffer)
-				} else {
-					throw "Could not load image"
-				}
-			})
-		})
+		try {
+			const resp = await fetch(img.src)
+			const buffer = await resp.arrayBuffer()
+			return handleBinaryFile(img, callback, buffer)
+		} catch (_) {
+			throw new Error("Could not load image")
+		}
 	}
 
 	if (self.FileReader && (img instanceof self.Blob || img instanceof self.File)) {
@@ -493,28 +493,27 @@ function getImageData(img, callback) {
 	}
 }
 
-function handleBinaryFile(img, callback, binFile) {
-	const data = findEXIFinJPEG(binFile)
-	img.exifdata = data || {}
+/**
+ * @param {ArrayBuffer} file
+ * @returns {{exif: object, iptc: object, xmp?: object}}
+ */
+function handleBinaryFile(file) {
+	const exif = findEXIFinJPEG(file)
+	const iptc = findIPTCinJPEG(file)
+	const xmp = false ? undefined : findXMPinJPEG(file)
 
-	const iptcdata = findIPTCinJPEG(binFile)
-	img.iptcdata = iptcdata || {}
-
-	// if (EXIF.isXmpEnabled) {
-	// 	const xmpdata = findXMPinJPEG(binFile)
-	// 	img.xmpdata = xmpdata || {}
-	// }
-
-	if (callback) {
-		callback.call(img)
-	}
+	return { exif, iptc, xmp }
 }
 
+/**
+ * @param {ArrayBuffer} file
+ * @returns {object}
+ */
 function findEXIFinJPEG(file) {
 	const dataView = new DataView(file)
 
 	if (dataView.getUint8(0) !== 0xff || dataView.getUint8(1) !== 0xd8) {
-		return false
+		throw new Error("Not a valid jpeg")
 	}
 
 	const length = file.byteLength
@@ -522,8 +521,10 @@ function findEXIFinJPEG(file) {
 	let marker
 
 	while (offset < length) {
+		// not a valid marker, something is wrong
 		if (dataView.getUint8(offset) !== 0xff) {
-			return false // not a valid marker, something is wrong
+			console.warn("Not a valid marker")
+			return {}
 		}
 
 		marker = dataView.getUint8(offset + 1)
@@ -534,18 +535,22 @@ function findEXIFinJPEG(file) {
 		if (marker === 225) {
 			return readEXIFData(dataView, offset + 4, dataView.getUint16(offset + 2) - 2)
 
-			// offset += 2 + file.getShortAt(offset+2, true);
+			// offset += 2 + buffer.getShortAt(offset+2, true);
 		} else {
 			offset += 2 + dataView.getUint16(offset + 2)
 		}
 	}
 }
 
+/**
+ * @param {ArrayBuffer} file
+ * @returns {object}
+ */
 function findIPTCinJPEG(file) {
 	const dataView = new DataView(file)
 
 	if (dataView.getUint8(0) !== 0xff || dataView.getUint8(1) !== 0xd8) {
-		return false // not a valid jpeg
+		throw new Error("Not a valid jpeg")
 	}
 
 	const length = file.byteLength
@@ -582,6 +587,8 @@ function findIPTCinJPEG(file) {
 		// Not the marker, continue searching
 		offset++
 	}
+
+	return {}
 }
 
 const IptcFieldMap = {
@@ -597,6 +604,12 @@ const IptcFieldMap = {
 	0x0f: "category",
 }
 
+/**
+ * @param {ArrayBuffer} file
+ * @param {number} startOffset
+ * @param {number} sectionLength
+ * @returns {object}
+ */
 function readIPTCData(file, startOffset, sectionLength) {
 	const dataView = new DataView(file)
 	const data = {}
@@ -633,6 +646,14 @@ function readIPTCData(file, startOffset, sectionLength) {
 	return data
 }
 
+/**
+ * @param {DataView} file
+ * @param {number} tiffStart
+ * @param {number} dirStart
+ * @param {object} strings
+ * @param {boolean} bigEnd
+ * @returns {object}
+ */
 function readTags(file, tiffStart, dirStart, strings, bigEnd) {
 	const entries = file.getUint16(dirStart, !bigEnd)
 	const tags = {}
@@ -644,6 +665,7 @@ function readTags(file, tiffStart, dirStart, strings, bigEnd) {
 
 		tags[tag] = readTagValue(file, entryOffset, tiffStart, dirStart, bigEnd)
 	}
+
 	return tags
 }
 
@@ -806,45 +828,59 @@ function readThumbnailImage(dataView, tiffStart, firstIFDOffset, bigEnd) {
 	return thumbTags
 }
 
+/**
+ * @param {DataView} buffer
+ * @param {number} start
+ * @param {number} length
+ * @returns {string}
+ */
 function getStringFromDB(buffer, start, length) {
 	let outstr = ""
+
 	for (let n = start; n < start + length; n++) {
 		outstr += String.fromCharCode(buffer.getUint8(n))
 	}
+
 	return outstr
 }
 
-function readEXIFData(file, start) {
-	if (getStringFromDB(file, start, 4) !== "Exif") {
-		return false
+/**
+ * @param {DataView} dataview
+ * @param {number} start
+ * @returns {object}
+ */
+function readEXIFData(dataview, start) {
+	if (getStringFromDB(dataview, start, 4) !== "Exif") {
+		return {}
 	}
 
 	const tiffOffset = start + 6
 	let bigEnd, tag, exifData, gpsData
 
 	// test for TIFF validity and endianness
-	if (file.getUint16(tiffOffset) === 0x4949) {
+	if (dataview.getUint16(tiffOffset) === 0x4949) {
 		bigEnd = false
-	} else if (file.getUint16(tiffOffset) === 0x4d4d) {
+	} else if (dataview.getUint16(tiffOffset) === 0x4d4d) {
 		bigEnd = true
 	} else {
-		return false
+		return {}
 	}
 
-	if (file.getUint16(tiffOffset + 2, !bigEnd) !== 0x002a) {
-		return false
+	if (dataview.getUint16(tiffOffset + 2, !bigEnd) !== 0x002a) {
+		return {}
 	}
 
-	const firstIFDOffset = file.getUint32(tiffOffset + 4, !bigEnd)
+	const firstIFDOffset = dataview.getUint32(tiffOffset + 4, !bigEnd)
 
 	if (firstIFDOffset < 0x00000008) {
-		return false
+		return {}
 	}
 
-	const tags = readTags(file, tiffOffset, tiffOffset + firstIFDOffset, TiffTags, bigEnd)
+	const tags = readTags(dataview, tiffOffset, tiffOffset + firstIFDOffset, TiffTags, bigEnd)
 
 	if (tags.ExifIFDPointer) {
-		exifData = readTags(file, tiffOffset, tiffOffset + tags.ExifIFDPointer, ExifTags, bigEnd)
+		exifData = readTags(dataview, tiffOffset, tiffOffset + tags.ExifIFDPointer, ExifTags, bigEnd)
+
 		for (tag in exifData) {
 			switch (tag) {
 				case "LightSource":
@@ -882,12 +918,13 @@ function readEXIFData(file, start) {
 						StringValues.Components[exifData[tag][3]]
 					break
 			}
+
 			tags[tag] = exifData[tag]
 		}
 	}
 
 	if (tags.GPSInfoIFDPointer) {
-		gpsData = readTags(file, tiffOffset, tiffOffset + tags.GPSInfoIFDPointer, GPSTags, bigEnd)
+		gpsData = readTags(dataview, tiffOffset, tiffOffset + tags.GPSInfoIFDPointer, GPSTags, bigEnd)
 		for (tag in gpsData) {
 			switch (tag) {
 				case "GPSVersionID":
@@ -900,7 +937,7 @@ function readEXIFData(file, start) {
 	}
 
 	// extract thumbnail
-	tags["thumbnail"] = readThumbnailImage(file, tiffOffset, firstIFDOffset, bigEnd)
+	tags["thumbnail"] = readThumbnailImage(dataview, tiffOffset, firstIFDOffset, bigEnd)
 
 	return tags
 }
