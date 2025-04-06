@@ -15,7 +15,7 @@ export class Exifjs {
 		isXmpEnabled = false
 	}
 
-	async getData(img, callback) {
+	async getData(img) {
 		// if (
 		// 	((self.Image && img instanceof self.Image) ||
 		// 		(self.HTMLImageElement && img instanceof self.HTMLImageElement)) &&
@@ -24,15 +24,7 @@ export class Exifjs {
 		// 	return false
 		// }
 
-		if (!imageHasData(img)) {
-			getImageData(img, callback)
-		} else {
-			if (callback) {
-				callback.call(img)
-			}
-		}
-
-		return true
+		return await getImageData(img)
 	}
 
 	getTag(img, tag) {
@@ -82,6 +74,10 @@ export class Exifjs {
 		return tags
 	}
 
+	/**
+	 * @param {Image} img
+	 * @returns {string}
+	 */
 	pretty(img) {
 		if (!imageHasData(img)) {
 			return ""
@@ -108,6 +104,10 @@ export class Exifjs {
 		return strPretty
 	}
 
+	/**
+	 * @param {File} file
+	 * @returns {object}
+	 */
 	readFromBinaryFile(file) {
 		return findEXIFinJPEG(file)
 	}
@@ -419,10 +419,11 @@ const StringValues = {
 	},
 }
 
-function imageHasData(img) {
-	return !!img.exifdata
-}
-
+/**
+ * @param {string} base64
+ * @param {string} contentType
+ * @returns {ArrayBuffer}
+ */
 function base64ToArrayBuffer(base64, contentType) {
 	const foundContentType = base64.substring(base64.indexOf(":") + 1, base64.indexOf(";base64,"))
 
@@ -437,15 +438,18 @@ function base64ToArrayBuffer(base64, contentType) {
 	for (let i = 0; i < len; i++) {
 		view[i] = binary.charCodeAt(i)
 	}
+
 	return buffer
 }
 
-function objectURLToBlob(url, callback) {
-	fetch(url).then((resp) => {
-		resp.blob((blob) => {
-			callback(blob)
-		})
-	})
+/**
+ * @param {string} url
+ * @returns {Blob}
+ */
+async function objectURLToBlob(url) {
+	const resp = await fetch(url)
+	const blob = await resp.blob()
+	return blob
 }
 
 /**
@@ -453,43 +457,55 @@ function objectURLToBlob(url, callback) {
  * @returns {Promise<any>}
  */
 async function getImageData(img) {
-	if (img.src) {
-		if (img.src.startsWith("data:")) {
-			const arrayBuffer = base64ToArrayBuffer(img.src)
-			return handleBinaryFile(arrayBuffer)
+	const isFile = img instanceof globalThis.Blob || img instanceof globalThis.File
+
+	if (!img.src) {
+		if (!(globalThis.FileReader && isFile)) {
+			throw new Error("No way to get image data")
 		}
+	}
 
-		if (img.src.startsWith("blob:")) {
-			const fileReader = new FileReader()
+	if (!img.src) {
+		const fileReader = new FileReader()
 
+		return await new Promise((resolve) => {
 			fileReader.addEventListener("load", function (event) {
-				const response = handleBinaryFile(event.target.result)
+				const file = event.target.result
+				const result = handleBinaryFile(file)
+				resolve(result)
+			})
+
+			fileReader.readAsArrayBuffer(img)
+		})
+	}
+
+	if (img.src.startsWith("data:")) {
+		const arrayBuffer = base64ToArrayBuffer(img.src)
+		return handleBinaryFile(arrayBuffer)
+	}
+
+	if (img.src.startsWith("blob:")) {
+		const fileReader = new FileReader()
+
+		return await new Promise((resolve) => {
+			fileReader.addEventListener("load", function (event) {
+				const file = event.target.result
+				const response = handleBinaryFile(file)
+				resolve(response)
 			})
 
 			objectURLToBlob(img.src, function (blob) {
 				fileReader.readAsArrayBuffer(blob)
 			})
-
-			return {}
-		}
-
-		try {
-			const resp = await fetch(img.src)
-			const buffer = await resp.arrayBuffer()
-			return handleBinaryFile(img, callback, buffer)
-		} catch (_) {
-			throw new Error("Could not load image")
-		}
+		})
 	}
 
-	if (self.FileReader && (img instanceof self.Blob || img instanceof self.File)) {
-		const fileReader = new FileReader()
-
-		fileReader.onload = function (e) {
-			handleBinaryFile(img, callback, e.target.result)
-		}
-
-		fileReader.readAsArrayBuffer(img)
+	try {
+		const resp = await fetch(img.src)
+		const blob = await resp.blob()
+		return handleBinaryFile(blob)
+	} catch (_) {
+		throw new Error("Could not load image")
 	}
 }
 
@@ -591,19 +607,6 @@ function findIPTCinJPEG(file) {
 	return {}
 }
 
-const IptcFieldMap = {
-	0x78: "caption",
-	0x6e: "credit",
-	0x19: "keywords",
-	0x37: "dateCreated",
-	0x50: "byline",
-	0x55: "bylineTitle",
-	0x7a: "captionWriter",
-	0x69: "headline",
-	0x74: "copyright",
-	0x0f: "category",
-}
-
 /**
  * @param {ArrayBuffer} file
  * @param {number} startOffset
@@ -611,6 +614,19 @@ const IptcFieldMap = {
  * @returns {object}
  */
 function readIPTCData(file, startOffset, sectionLength) {
+	const IptcFieldMap = {
+		0x78: "caption",
+		0x6e: "credit",
+		0x19: "keywords",
+		0x37: "dateCreated",
+		0x50: "byline",
+		0x55: "bylineTitle",
+		0x7a: "captionWriter",
+		0x69: "headline",
+		0x74: "copyright",
+		0x0f: "category",
+	}
+
 	const dataView = new DataView(file)
 	const data = {}
 	let fieldValue, fieldName, dataSize, segmentType
@@ -669,6 +685,14 @@ function readTags(file, tiffStart, dirStart, strings, bigEnd) {
 	return tags
 }
 
+/**
+ * @param {DataView} file
+ * @param {number} entryOffset
+ * @param {number} tiffStart
+ * @param {number} _dirStart
+ * @param {boolean} bigEnd
+ * @returns {number | number[] | string}
+ */
 function readTagValue(file, entryOffset, tiffStart, _dirStart, bigEnd) {
 	const type = file.getUint16(entryOffset + 2, !bigEnd)
 	const numValues = file.getUint32(entryOffset + 4, !bigEnd)
@@ -763,7 +787,11 @@ function readTagValue(file, entryOffset, tiffStart, _dirStart, bigEnd) {
 
 /**
  * Given an IFD (Image File Directory) start offset
- * returns an offset to next IFD or 0 if it's the last IFD.
+ * returns an offset to next IFD or 0 if it is the last IFD.
+ *
+ * @param {DataView} dataView
+ * @param {number} dirStart
+ * @param {number} bigEnd
  */
 function getNextIFDOffset(dataView, dirStart, bigEnd) {
 	//the first 2bytes means the number of directory entries contains in this IFD
@@ -773,22 +801,30 @@ function getNextIFDOffset(dataView, dirStart, bigEnd) {
 	// it means an offset to next IFD.
 	// If its value is '0x00000000', it means this is the last IFD and there is no linked IFD.
 
-	return dataView.getUint32(dirStart + 2 + entries * 12, !bigEnd) // each entry is 12 bytes long
+	// each entry is 12 bytes long
+	return dataView.getUint32(dirStart + 2 + entries * 12, !bigEnd)
 }
 
+/**
+ * @param {DataView} dataView
+ * @param {number} tiffStart
+ * @param {number} firstIFDOffset
+ * @param {boolean} bigEnd
+ * @returns {object}
+ */
 function readThumbnailImage(dataView, tiffStart, firstIFDOffset, bigEnd) {
 	// get the IFD1 offset
 	const IFD1OffsetPointer = getNextIFDOffset(dataView, tiffStart + firstIFDOffset, bigEnd)
 
 	if (!IFD1OffsetPointer) {
-		// console.log('******** IFD1Offset is empty, image thumb not found ********');
-		return {}
-	} else if (IFD1OffsetPointer > dataView.byteLength) {
-		// this should not happen
-		// console.log('******** IFD1Offset is outside the bounds of the DataView ********');
+		console.warn("IFD1Offset is empty, image thumb not found")
 		return {}
 	}
-	// console.log('*******  thumbnail IFD offset (IFD1) is: %s', IFD1OffsetPointer);
+
+	if (IFD1OffsetPointer > dataView.byteLength) {
+		// this should not happen
+		throw new Error("IFD1Offset is outside the bounds of the DataView")
+	}
 
 	const thumbTags = readTags(dataView, tiffStart, tiffStart + IFD1OffsetPointer, IFD1Tags, bigEnd)
 
@@ -801,8 +837,6 @@ function readThumbnailImage(dataView, tiffStart, firstIFDOffset, bigEnd) {
 	// JPEG format and 160x120pixels of size are recommended thumbnail format for Exif2.1 or later.
 
 	if (thumbTags["Compression"]) {
-		// console.log('Thumbnail image found!');
-
 		switch (thumbTags["Compression"]) {
 			case 6:
 				// console.log('Thumbnail image format is JPEG');
@@ -825,6 +859,7 @@ function readThumbnailImage(dataView, tiffStart, firstIFDOffset, bigEnd) {
 	} else if (thumbTags["PhotometricInterpretation"] === 2) {
 		console.log("Thumbnail image format is RGB, which is not implemented.")
 	}
+
 	return thumbTags
 }
 
@@ -942,21 +977,24 @@ function readEXIFData(dataview, start) {
 	return tags
 }
 
+/**
+ * @param {File} file
+ * @returns {object}
+ */
 function findXMPinJPEG(file) {
-	if (!("DOMParser" in self)) {
-		// console.warn('XML parsing not supported without DOMParser');
-		return
+	if (!globalThis.DOMParser) {
+		throw new Error("XML parsing not supported without DOMParser")
 	}
 
 	const dataView = new DataView(file)
 
 	if (dataView.getUint8(0) !== 0xff || dataView.getUint8(1) !== 0xd8) {
-		return false // not a valid jpeg
+		throw new Error("Not a valid jpeg")
 	}
 
 	let offset = 2
 	const length = file.byteLength
-	const dom = new DOMParser()
+	const dom = new globalThis.DOMParser()
 
 	while (offset < length - 4) {
 		if (getStringFromDB(dataView, offset, 4) === "http") {
@@ -967,8 +1005,9 @@ function findXMPinJPEG(file) {
 			xmpString = xmpString.substring(xmpString.indexOf("<x:xmpmeta"), xmpEndIndex)
 
 			const indexOfXmp = xmpString.indexOf("x:xmpmeta") + 10
-			//Many custom written programs embed xmp/xml without any namespace. Following are some of them.
-			//Without these namespaces, XML is thought to be invalid by parsers
+
+			// Many custom written programs embed xmp/xml without any namespace. Following are some of them.
+			// Without these namespaces, XML is thought to be invalid by parsers
 			xmpString = xmpString.slice(0, indexOfXmp) +
 				'xmlns:Iptc4xmpCore="http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/" ' +
 				'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' +
@@ -984,13 +1023,20 @@ function findXMPinJPEG(file) {
 				xmpString.slice(indexOfXmp)
 
 			const domDocument = dom.parseFromString(xmpString, "text/xml")
+
 			return xml2Object(domDocument)
 		} else {
 			offset++
 		}
 	}
+
+	return {}
 }
 
+/**
+ * @param {any} xml
+ * @returns {JSON}
+ */
 function xml2json(xml) {
 	const json = {}
 
@@ -1029,43 +1075,45 @@ function xml2json(xml) {
 	return json
 }
 
+/**
+ * @param {any} xml
+ * @returns {string | object}
+ */
 function xml2Object(xml) {
-	try {
-		let obj = {}
-		if (xml.children.length > 0) {
-			for (let i = 0; i < xml.children.length; i++) {
-				const item = xml.children.item(i)
-				const attributes = item.attributes
+	let obj = {}
 
-				for (const idx in attributes) {
-					const itemAtt = attributes[idx]
-					const dataKey = itemAtt.nodeName
-					const dataValue = itemAtt.nodeValue
+	if (xml.children.length > 0) {
+		for (let i = 0; i < xml.children.length; i++) {
+			const item = xml.children.item(i)
+			const attributes = item.attributes
 
-					if (dataKey !== undefined) {
-						obj[dataKey] = dataValue
-					}
-				}
+			for (const idx in attributes) {
+				const itemAtt = attributes[idx]
+				const dataKey = itemAtt.nodeName
+				const dataValue = itemAtt.nodeValue
 
-				const nodeName = item.nodeName
-
-				if (typeof obj[nodeName] === "undefined") {
-					obj[nodeName] = xml2json(item)
-				} else {
-					if (typeof obj[nodeName].push === "undefined") {
-						const old = obj[nodeName]
-
-						obj[nodeName] = []
-						obj[nodeName].push(old)
-					}
-					obj[nodeName].push(xml2json(item))
+				if (dataKey !== undefined) {
+					obj[dataKey] = dataValue
 				}
 			}
-		} else {
-			obj = xml.textContent
+
+			const nodeName = item.nodeName
+
+			if (typeof obj[nodeName] === "undefined") {
+				obj[nodeName] = xml2json(item)
+			} else {
+				if (typeof obj[nodeName].push === "undefined") {
+					const old = obj[nodeName]
+
+					obj[nodeName] = []
+					obj[nodeName].push(old)
+				}
+				obj[nodeName].push(xml2json(item))
+			}
 		}
-		return obj
-	} catch (e) {
-		console.log(e.message)
+	} else {
+		obj = xml.textContent
 	}
+
+	return obj
 }
