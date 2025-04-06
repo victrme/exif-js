@@ -1,31 +1,20 @@
 # Exif.js
 
-A JavaScript library for reading [EXIF meta data](https://en.wikipedia.org/wiki/Exchangeable_image_file_format) from image files.
+A modernized fork of a javaccript library for reading [EXIF meta data](https://en.wikipedia.org/wiki/Exchangeable_image_file_format) from image files.
 
 You can use it on images in the browser, either from an image or a file input element. Both EXIF and IPTC metadata are retrieved.
-This package can also be used in AMD or CommonJS environments.
 
-**Note**: The EXIF standard applies only to `.jpg` and `.tiff` images. EXIF logic in this package is based on the EXIF standard v2.2 ([JEITA CP-3451, included in this repo](/spec/Exif2-2.pdf)).
+**Note**: The EXIF standard applies only to `.jpg` and `.tiff` images. EXIF logic in this package is based on the EXIF standard v2.2.
 
 ## Install
 Install `exif-js` through [NPM](https://www.npmjs.com/#getting-started):
 
-    npm install exif-js --save    
+```bash
+npm install @victr/exif-js
+``` 
 
-Or [Bower](http://bower.io/):
-
-    bower install exif-js --save
-
-Then add a `script` tag in your an HTML in the [best position](http://stackoverflow.com/questions/436411/where-is-the-best-place-to-put-script-tags-in-html-markup) referencing your local file.
-
-```html
-<script src="vendors/exif-js/exif-js"></script>
-```
-
-You can also use a minified version hosted on jsDelivr
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+```js
+import { Exifjs } from "@victr/exif-js"
 ```
 
 ## Usage
@@ -80,15 +69,3 @@ function getExif() {
 
 Note there are also alternate tags, such the `EXIF.TiffTags`. See the source code for the full definition and use.
 You can also get back a string with all the EXIF information in the image pretty printed by using `EXIF.pretty`.
-Check the included [index.html](/exif-js/exif-js/blob/master/index.html).
-
-**XMP**
-Since issue #53 was merged also extracting of XMP data is supported. To not slow down this is optional, and you need to call `EXIF.enableXmp();` before using `EXIF.getData()`.
-
-Please refer to the [source code](exif.js) for more advanced usages such as getting image data from a [File/Blob](https://developer.mozilla.org/en/docs/Web/API/Blob) object (`EXIF.readFromBinaryFile`).
-
-## Contributions
-This is an [open source project](LICENSE.md). Please contribute by forking this repo and issueing a pull request. The project has had notable contributions already, like reading ITPC data.
-
-You can also contribute by [filing bugs or new features please issue](/exif-js/issues).
-Or improve the documentation. Please update this README when you do a pull request of proposed changes in base functionality.
