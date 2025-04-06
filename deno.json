@@ -3,7 +3,7 @@
 	"version": "0.0.0",
 	"exports": "./exif.js",
 	"tasks": {
-		"dev": "deno -v"
+		"dev": "npx http-server -c-1 ./example"
 	},
 	"fmt": {
 		"indentWidth": 4,
