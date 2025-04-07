@@ -25,27 +25,78 @@ export class Exifjs {
 
 	/**
 	 * Retreive EXIF, IPTC, & XML info for an image
-	 * @param {Image} img
+	 * @param {Image | File | Blob} img
 	 * @returns {{ exif: object, iptc: object, xmp?: object }}
 	 */
 	async getData(img) {
+		const isImage = img instanceof globalThis.HTMLImageElement && img instanceof globalThis.Image
+		const isFile = img instanceof globalThis.Blob || img instanceof globalThis.File
 		const domExists = globalThis.HTMLImageElement && globalThis.Image
-		const imgIsImage = img instanceof globalThis.HTMLImageElement && img instanceof globalThis.Image
 		const imgIsReady = img.complete
 
 		if (!domExists) {
 			throw new Error("No access to DOM")
 		}
-		if (!imgIsImage) {
-			throw new Error("Not an image")
+		if (!isImage && !isFile) {
+			throw new Error("Not an image nor a file")
 		}
-		if (!imgIsReady) {
+		if (isImage && !imgIsReady) {
 			throw new Error("Image is not ready")
 		}
+		if (isFile && !globalThis.FileReader) {
+			throw new Error("No way to get file data")
+		}
 
-		lastData = await getImageData(img)
+		if (isFile) {
+			const fileReader = new FileReader()
 
-		return this.lastData
+			const data = await new Promise((resolve) => {
+				fileReader.addEventListener("load", function (event) {
+					const file = event.target.result
+					const result = handleBinaryFile(file)
+					resolve(result)
+				})
+
+				fileReader.readAsArrayBuffer(img)
+			})
+
+			this.lastData = data
+			return data
+		}
+
+		if (img.src.startsWith("data:")) {
+			const arrayBuffer = base64ToArrayBuffer(img.src)
+			const data = handleBinaryFile(arrayBuffer)
+
+			this.lastData = data
+			return data
+		}
+
+		if (img.src.startsWith("blob:")) {
+			const fileReader = new FileReader()
+
+			const data = await new Promise((resolve) => {
+				fileReader.addEventListener("load", function (event) {
+					const file = event.target.result
+					const response = handleBinaryFile(file)
+					resolve(response)
+				})
+
+				objectURLToBlob(img.src, function (blob) {
+					fileReader.readAsArrayBuffer(blob)
+				})
+			})
+
+			this.lastData = data
+			return data
+		}
+
+		const resp = await fetch(img.src)
+		const buffer = await resp.arrayBuffer()
+		const data = handleBinaryFile(buffer)
+
+		this.lastData = data
+		return data
 	}
 
 	/**
@@ -63,9 +114,7 @@ export class Exifjs {
 	 * @returns {string}
 	 */
 	getIptcTag(tag) {
-		if (this.lastData) {
-			return this.lastData.iptc[tag]
-		}
+		return this.lastData.iptc[tag]
 	}
 
 	/**
@@ -93,16 +142,21 @@ export class Exifjs {
 	}
 
 	/**
+	 * Can get data directly from a File
+	 * @param {File} file
+	 * @returns {object}
+	 */
+	readFromBinaryFile(file) {
+		return findEXIFinJPEG(file)
+	}
+
+	/**
 	 * Returns data as a pretty JSON string
 	 * @param {Image} img
 	 * @returns {string}
 	 */
 	pretty() {
-		if (!this.lastData) {
-			return ""
-		}
-
-		const data = this.lastData
+		const data = this.lastData.exif
 		let strPretty = ""
 		let a
 
@@ -120,15 +174,6 @@ export class Exifjs {
 		}
 
 		return strPretty
-	}
-
-	/**
-	 * Can get data directly from a File
-	 * @param {File} file
-	 * @returns {object}
-	 */
-	readFromBinaryFile(file) {
-		return findEXIFinJPEG(file)
 	}
 }
 
@@ -472,70 +517,13 @@ async function objectURLToBlob(url) {
 }
 
 /**
- * @param {Image} img
- * @returns {Promise<any>}
- */
-async function getImageData(img) {
-	const isFile = img instanceof globalThis.Blob || img instanceof globalThis.File
-
-	if (!img.src) {
-		if (!(globalThis.FileReader && isFile)) {
-			throw new Error("No way to get image data")
-		}
-	}
-
-	if (!img.src) {
-		const fileReader = new FileReader()
-
-		return await new Promise((resolve) => {
-			fileReader.addEventListener("load", function (event) {
-				const file = event.target.result
-				const result = handleBinaryFile(file)
-				resolve(result)
-			})
-
-			fileReader.readAsArrayBuffer(img)
-		})
-	}
-
-	if (img.src.startsWith("data:")) {
-		const arrayBuffer = base64ToArrayBuffer(img.src)
-		return handleBinaryFile(arrayBuffer)
-	}
-
-	if (img.src.startsWith("blob:")) {
-		const fileReader = new FileReader()
-
-		return await new Promise((resolve) => {
-			fileReader.addEventListener("load", function (event) {
-				const file = event.target.result
-				const response = handleBinaryFile(file)
-				resolve(response)
-			})
-
-			objectURLToBlob(img.src, function (blob) {
-				fileReader.readAsArrayBuffer(blob)
-			})
-		})
-	}
-
-	try {
-		const resp = await fetch(img.src)
-		const blob = await resp.blob()
-		return handleBinaryFile(blob)
-	} catch (_) {
-		throw new Error("Could not load image")
-	}
-}
-
-/**
  * @param {ArrayBuffer} file
  * @returns {{exif: object, iptc: object, xmp?: object}}
  */
 function handleBinaryFile(file) {
 	const exif = findEXIFinJPEG(file)
 	const iptc = findIPTCinJPEG(file)
-	const xmp = false ? undefined : findXMPinJPEG(file)
+	const xmp = true ? undefined : findXMPinJPEG(file)
 
 	return { exif, iptc, xmp }
 }
