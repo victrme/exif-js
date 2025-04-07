@@ -24,13 +24,15 @@ export class Exifjs {
 	}
 
 	/**
-	 * Retreive EXIF, IPTC, & XML info for an image
+	 * Retreive EXIF, IPTC, & XMP info for an image
 	 * @param {Image | File | Blob} img
 	 * @returns {{ exif: object, iptc: object, xmp?: object }}
 	 */
 	async getData(img) {
-		const isImage = img instanceof globalThis.HTMLImageElement && img instanceof globalThis.Image
-		const isFile = img instanceof globalThis.Blob || img instanceof globalThis.File
+		const isImage = img instanceof globalThis.HTMLImageElement &&
+			img instanceof globalThis.Image
+		const isFile = img instanceof globalThis.Blob ||
+			img instanceof globalThis.File
 		const domExists = globalThis.HTMLImageElement && globalThis.Image
 		const imgIsReady = img.complete
 
@@ -120,7 +122,8 @@ export class Exifjs {
 		for (a in data) {
 			if (typeof data[a] === "object") {
 				if (data[a] instanceof Number) {
-					strPretty += a + " : " + data[a] + " [" + data[a].numerator + "/" + data[a].denominator +
+					strPretty += a + " : " + data[a] + " [" +
+						data[a].numerator + "/" + data[a].denominator +
 						"]\r\n"
 				} else {
 					strPretty += a + " : [" + data[a].length + " values]\r\n"
@@ -140,7 +143,10 @@ export class Exifjs {
 	 */
 	static base64ToArrayBuffer(base64, contentType) {
 		console.log(base64)
-		const foundContentType = base64.substring(base64.indexOf(":") + 1, base64.indexOf(";base64,"))
+		const foundContentType = base64.substring(
+			base64.indexOf(":") + 1,
+			base64.indexOf(";base64,"),
+		)
 
 		contentType = contentType || foundContentType || ""
 		base64 = base64.substring(base64.indexOf(";base64,") + 8)
@@ -197,7 +203,11 @@ export class Exifjs {
 			// but we're only looking for 0xFFE1 for EXIF data
 
 			if (marker === 225) {
-				return Exifjs.readEXIFData(dataView, offset + 4, dataView.getUint16(offset + 2) - 2)
+				return Exifjs.readEXIFData(
+					dataView,
+					offset + 4,
+					dataView.getUint16(offset + 2) - 2,
+				)
 
 				// offset += 2 + buffer.getShortAt(offset+2, true);
 			} else {
@@ -241,7 +251,9 @@ export class Exifjs {
 				}
 
 				const startOffset = offset + 8 + nameHeaderLength
-				const sectionLength = dataView.getUint16(offset + 6 + nameHeaderLength)
+				const sectionLength = dataView.getUint16(
+					offset + 6 + nameHeaderLength,
+				)
 
 				return Exifjs.readIPTCData(file, startOffset, sectionLength)
 			}
@@ -279,14 +291,21 @@ export class Exifjs {
 		let segmentStartPos = startOffset
 
 		while (segmentStartPos < startOffset + sectionLength) {
-			if (dataView.getUint8(segmentStartPos) === 0x1c && dataView.getUint8(segmentStartPos + 1) === 0x02) {
+			if (
+				dataView.getUint8(segmentStartPos) === 0x1c &&
+				dataView.getUint8(segmentStartPos + 1) === 0x02
+			) {
 				segmentType = dataView.getUint8(segmentStartPos + 2)
 
 				if (segmentType in IptcFieldMap) {
 					dataSize = dataView.getInt16(segmentStartPos + 3)
 					// segmentSize = dataSize + 5
 					fieldName = IptcFieldMap[segmentType]
-					fieldValue = Exifjs.getStringFromDB(dataView, segmentStartPos + 5, dataSize)
+					fieldValue = Exifjs.getStringFromDB(
+						dataView,
+						segmentStartPos + 5,
+						dataSize,
+					)
 
 					// Check if we already stored a value with this name
 					if (fieldName in data) {
@@ -325,7 +344,13 @@ export class Exifjs {
 			entryOffset = dirStart + i * 12 + 2
 			tag = strings[file.getUint16(entryOffset, !bigEnd)]
 
-			tags[tag] = Exifjs.readTagValue(file, entryOffset, tiffStart, dirStart, bigEnd)
+			tags[tag] = Exifjs.readTagValue(
+				file,
+				entryOffset,
+				tiffStart,
+				dirStart,
+				bigEnd,
+			)
 		}
 
 		return tags
@@ -342,7 +367,8 @@ export class Exifjs {
 	static readTagValue(file, entryOffset, tiffStart, _dirStart, bigEnd) {
 		const type = file.getUint16(entryOffset + 2, !bigEnd)
 		const numValues = file.getUint32(entryOffset + 4, !bigEnd)
-		const valueOffset = file.getUint32(entryOffset + 8, !bigEnd) + tiffStart
+		const valueOffset = file.getUint32(entryOffset + 8, !bigEnd) +
+			tiffStart
 		let offset, vals, val, n, numerator, denominator
 
 		switch (type) {
@@ -397,8 +423,14 @@ export class Exifjs {
 				} else {
 					vals = []
 					for (n = 0; n < numValues; n++) {
-						numerator = file.getUint32(valueOffset + 8 * n, !bigEnd)
-						denominator = file.getUint32(valueOffset + 4 + 8 * n, !bigEnd)
+						numerator = file.getUint32(
+							valueOffset + 8 * n,
+							!bigEnd,
+						)
+						denominator = file.getUint32(
+							valueOffset + 4 + 8 * n,
+							!bigEnd,
+						)
 						vals[n] = new Number(numerator / denominator)
 						vals[n].numerator = numerator
 						vals[n].denominator = denominator
@@ -419,7 +451,8 @@ export class Exifjs {
 
 			case 10: // signed rational, two slongs, first is numerator, second is denominator
 				if (numValues === 1) {
-					return file.getInt32(valueOffset, !bigEnd) / file.getInt32(valueOffset + 4, !bigEnd)
+					return file.getInt32(valueOffset, !bigEnd) /
+						file.getInt32(valueOffset + 4, !bigEnd)
 				} else {
 					vals = []
 					for (n = 0; n < numValues; n++) {
@@ -460,7 +493,11 @@ export class Exifjs {
 	 */
 	static readThumbnailImage(dataView, tiffStart, firstIFDOffset, bigEnd) {
 		// get the IFD1 offset
-		const IFD1OffsetPointer = Exifjs.getNextIFDOffset(dataView, tiffStart + firstIFDOffset, bigEnd)
+		const IFD1OffsetPointer = Exifjs.getNextIFDOffset(
+			dataView,
+			tiffStart + firstIFDOffset,
+			bigEnd,
+		)
 
 		if (!IFD1OffsetPointer) {
 			console.warn("IFD1Offset is empty, image thumb not found")
@@ -472,7 +509,13 @@ export class Exifjs {
 			throw new Error("IFD1Offset is outside the bounds of the DataView")
 		}
 
-		const thumbTags = Exifjs.readTags(dataView, tiffStart, tiffStart + IFD1OffsetPointer, Exifjs.IFD1Tags, bigEnd)
+		const thumbTags = Exifjs.readTags(
+			dataView,
+			tiffStart,
+			tiffStart + IFD1OffsetPointer,
+			Exifjs.IFD1Tags,
+			bigEnd,
+		)
 
 		// EXIF 2.3 specification for JPEG format thumbnail
 
@@ -490,20 +533,29 @@ export class Exifjs {
 						// extract the thumbnail
 						const tOffset = tiffStart + thumbTags.JpegIFOffset
 						const tLength = thumbTags.JpegIFByteCount
-						thumbTags["blob"] = new Blob([new Uint8Array(dataView.buffer, tOffset, tLength)], {
+						thumbTags["blob"] = new Blob([
+							new Uint8Array(dataView.buffer, tOffset, tLength),
+						], {
 							type: "image/jpeg",
 						})
 					}
 					break
 
 				case 1:
-					console.log("Thumbnail image format is TIFF, which is not implemented.")
+					console.log(
+						"Thumbnail image format is TIFF, which is not implemented.",
+					)
 					break
 				default:
-					console.log("Unknown thumbnail image format '%s'", thumbTags["Compression"])
+					console.log(
+						"Unknown thumbnail image format '%s'",
+						thumbTags["Compression"],
+					)
 			}
 		} else if (thumbTags["PhotometricInterpretation"] === 2) {
-			console.log("Thumbnail image format is RGB, which is not implemented.")
+			console.log(
+				"Thumbnail image format is RGB, which is not implemented.",
+			)
 		}
 
 		return thumbTags
@@ -557,10 +609,22 @@ export class Exifjs {
 			return {}
 		}
 
-		const tags = Exifjs.readTags(dataview, tiffOffset, tiffOffset + firstIFDOffset, Exifjs.TiffTags, bigEnd)
+		const tags = Exifjs.readTags(
+			dataview,
+			tiffOffset,
+			tiffOffset + firstIFDOffset,
+			Exifjs.TiffTags,
+			bigEnd,
+		)
 
 		if (tags.ExifIFDPointer) {
-			exifData = Exifjs.readTags(dataview, tiffOffset, tiffOffset + tags.ExifIFDPointer, Exifjs.ExifTags, bigEnd)
+			exifData = Exifjs.readTags(
+				dataview,
+				tiffOffset,
+				tiffOffset + tags.ExifIFDPointer,
+				Exifjs.ExifTags,
+				bigEnd,
+			)
 
 			for (tag in exifData) {
 				switch (tag) {
@@ -605,11 +669,18 @@ export class Exifjs {
 		}
 
 		if (tags.GPSInfoIFDPointer) {
-			gpsData = Exifjs.readTags(dataview, tiffOffset, tiffOffset + tags.GPSInfoIFDPointer, Exifjs.GPSTags, bigEnd)
+			gpsData = Exifjs.readTags(
+				dataview,
+				tiffOffset,
+				tiffOffset + tags.GPSInfoIFDPointer,
+				Exifjs.GPSTags,
+				bigEnd,
+			)
 			for (tag in gpsData) {
 				switch (tag) {
 					case "GPSVersionID":
-						gpsData[tag] = gpsData[tag][0] + "." + gpsData[tag][1] + "." + gpsData[tag][2] + "." +
+						gpsData[tag] = gpsData[tag][0] + "." + gpsData[tag][1] +
+							"." + gpsData[tag][2] + "." +
 							gpsData[tag][3]
 						break
 				}
@@ -618,7 +689,12 @@ export class Exifjs {
 		}
 
 		// extract thumbnail
-		tags["thumbnail"] = Exifjs.readThumbnailImage(dataview, tiffOffset, firstIFDOffset, bigEnd)
+		tags["thumbnail"] = Exifjs.readThumbnailImage(
+			dataview,
+			tiffOffset,
+			firstIFDOffset,
+			bigEnd,
+		)
 
 		return tags
 	}
@@ -646,9 +722,16 @@ export class Exifjs {
 			if (Exifjs.getStringFromDB(dataView, offset, 4) === "http") {
 				const startOffset = offset - 1
 				const sectionLength = dataView.getUint16(offset - 2) - 1
-				let xmpString = Exifjs.getStringFromDB(dataView, startOffset, sectionLength)
+				let xmpString = Exifjs.getStringFromDB(
+					dataView,
+					startOffset,
+					sectionLength,
+				)
 				const xmpEndIndex = xmpString.indexOf("xmpmeta>") + 8
-				xmpString = xmpString.substring(xmpString.indexOf("<x:xmpmeta"), xmpEndIndex)
+				xmpString = xmpString.substring(
+					xmpString.indexOf("<x:xmpmeta"),
+					xmpEndIndex,
+				)
 
 				const indexOfXmp = xmpString.indexOf("x:xmpmeta") + 10
 
