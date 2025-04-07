@@ -4,16 +4,22 @@ _This is a fork of [exif-js by @jseidelin](https://github.com/exif-js/exif-js/)_
 
 A JavaScript library for reading [EXIF meta data](https://en.wikipedia.org/wiki/Exchangeable_image_file_format) from image files.
 
-You can use it on images in the browser, either from an image or a file input element. Both EXIF and IPTC metadata are retrieved.
+Use it on images in the browser, either from an image or a file input element. Both EXIF and IPTC metadata are retrieved. The EXIF standard applies only to `.jpg` and `.tiff` images. EXIF logic in this package is based on the EXIF standard v2.2.
 
-**Note**: The EXIF standard applies only to `.jpg` and `.tiff` images. EXIF logic in this package is based on the EXIF standard v2.2.
+Test with this demo: https://exif-js.pages.dev/
 
 ## Install
-Install `exif-js` through [NPM](https://www.npmjs.com/#getting-started):
+
+- Install from jsr: https://jsr.io/@victr/exif-js
+- Install from npm: https://www.npmjs.com/package/@victr/exif-js
 
 ```bash
+# jsr
+deno add jsr:@victr/exif-js
+
+# npm
 npm install @victr/exif-js
-``` 
+```
 
 ## Usage
 
@@ -27,7 +33,7 @@ You receive an object with exif, iptc, and xmp data.
 ```javascript
 import { Exifjs } from "@victr/exif-js"
 
-const ExifReader = new Exifjs()
+const reader = new Exifjs()
 
 async function getExif() {
     const img1 = document.getElementById("img1")
@@ -35,13 +41,14 @@ async function getExif() {
     const makeAndModel = document.getElementById("makeAndModel")
     const allMetaDataSpan = document.getElementById("allMetaDataSpan")
 
-    const { exif } = await ExifReader.getData(img)
+    const { exif } = await reader.getData(img)
     const make = exif["Make"]
     const model = exif["Model"]
     makeAndModel.textContent = `${make} ${model}`
 
-    const data = await ExifReader.getData(img2)
-    allMetaDataSpan.textContent = JSON.stringify(data, null, "\t")
+    const data = await reader.getData(img2)
+    const pretty = reader.pretty()
+    allMetaDataSpan.textContent = pretty
 }
 ```
 
@@ -56,5 +63,11 @@ async function getExif() {
 </body>
 ```
 
-Note there are also alternate tags, such the `Exifjs.TiffTags`. See the source code for the full definition and use.
-You can also get back a string with all the EXIF information in the image pretty printed by using `Exifjs.pretty`.
+## What changed
+
+- Removed CommonJS
+- Replaced global variables with self-contained Exifjs class
+- Improved editor autocomplete with JSDoc
+- Replaced callbacks with async
+- Stronger code with stricter linter
+
