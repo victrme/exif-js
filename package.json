@@ -1,13 +1,15 @@
 {
 	"name": "@victr/exif-js",
-	"version": "0.0.1",
+	"version": "2.3.0",
 	"description": "JavaScript library for reading EXIF image metadata",
 	"authors": [
 		"Jacob Seidelin",
 		"Victor Azevedo"
 	],
 	"keywords": [
-		"exif"
+		"exif",
+		"iptc",
+		"images"
 	],
 	"license": "MIT",
 	"homepage": "https://github.com/victrme/exif-js",

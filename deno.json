@@ -1,6 +1,6 @@
 {
 	"name": "@victr/exif-js",
-	"version": "0.0.1",
+	"version": "2.3.0",
 	"exports": "./exif.js",
 	"tasks": {
 		"lint": "deno task lint",
