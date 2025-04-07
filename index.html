@@ -26,9 +26,9 @@
 		<br />
 
 		<div>
-			<img src="./DSCN0614_small.jpg" id="img1" />
-			<img src="./Bush-dog.jpg" id="img2" />
-			<img src="./dsc_09827.jpg" id="img3" />
+			<img src="./example/DSCN0614_small.jpg" id="img1" />
+			<img src="./example/Bush-dog.jpg" id="img2" />
+			<img src="./example/dsc_09827.jpg" id="img3" />
 		</div>
 
 		<p>
@@ -38,7 +38,7 @@
 		</p>
 
 		<script type="module">
-			import { Exifjs } from "../exif.js";
+			import { Exifjs } from "./exif.js";
 
 			const Exif = new Exifjs();
 
@@ -89,11 +89,11 @@
 					alert(Exif.pretty());
 				});
 
-				image.src = "./DSCN0614_small.jpg";
+				image.src = "./example/DSCN0614_small.jpg";
 			});
 
 			blobtest.addEventListener("click", async function () {
-				const resp = await fetch("./DSCN0614_small.jpg");
+				const resp = await fetch("./example/DSCN0614_small.jpg");
 				const blob = await resp.blob();
 
 				await Exif.getData(blob);
