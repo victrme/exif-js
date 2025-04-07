@@ -100,48 +100,6 @@ export class Exifjs {
 	}
 
 	/**
-	 * Get a single tag from the EXIF list
-	 * @param {string} tag
-	 * @returns {string}
-	 */
-	getTag(tag) {
-		return this.lastData.exifdata[tag]
-	}
-
-	/**
-	 * Get a single tag from the IPTC list
-	 * @param {string} tag
-	 * @returns {string}
-	 */
-	getIptcTag(tag) {
-		return this.lastData.iptc[tag]
-	}
-
-	/**
-	 * Get all EXIF info
-	 * @returns {object}
-	 */
-	getAllTags() {
-		if (!this.lastData) {
-			return {}
-		}
-
-		return this.lastData.exif
-	}
-
-	/**
-	 * Get all IPTC info
-	 * @returns {object}
-	 */
-	getAllIptcTags() {
-		if (!this.lastData) {
-			return {}
-		}
-
-		return this.lastData.iptc
-	}
-
-	/**
 	 * Can get data directly from a File
 	 * @param {File} file
 	 * @returns {object}
