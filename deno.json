@@ -3,7 +3,8 @@
 	"version": "0.0.0",
 	"exports": "./exif.js",
 	"tasks": {
-		"dev": "deno run --allow-net --allow-read jsr:@std/http/file-server"
+		"dev": "deno run --allow-net --allow-read jsr:@std/http/file-server",
+		"types": "npx -p typescript tsc exif.js --declaration --allowJs --emitDeclarationOnly --outfile exif.d.ts"
 	},
 	"fmt": {
 		"indentWidth": 4,
@@ -30,6 +31,12 @@
 				"default-param-last"
 			]
 		}
+	},
+	"compilerOptions": {
+		"lib": [
+			"dom",
+			"esnext"
+		]
 	},
 	"$schema": "https://deno.land/x/deno/cli/schemas/config-file.v1.json"
 }

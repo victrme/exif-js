@@ -110,7 +110,6 @@ export class Exifjs {
 
 	/**
 	 * Returns data as a pretty JSON string
-	 * @param {Image} img
 	 * @returns {string}
 	 */
 	pretty() {
@@ -681,7 +680,7 @@ export class Exifjs {
 	}
 
 	/**
-	 * @param {any} xml
+	 * @param {DocumentFragment} xml
 	 * @returns {JSON}
 	 */
 	static xml2json(xml) {
@@ -723,7 +722,7 @@ export class Exifjs {
 	}
 
 	/**
-	 * @param {any} xml
+	 * @param {DocumentFragment} xml
 	 * @returns {string | object}
 	 */
 	static xml2Object(xml) {
@@ -765,6 +764,9 @@ export class Exifjs {
 		return obj
 	}
 
+	/**
+	 * @type {Record<string, string>}
+	 */
 	static ExifTags = {
 		// version tags
 		0x9000: "ExifVersion", // EXIF version
@@ -840,6 +842,9 @@ export class Exifjs {
 		0xa420: "ImageUniqueID", // Identifier assigned uniquely to each image
 	}
 
+	/**
+	 * @type {Record<string, string>}
+	 */
 	static TiffTags = {
 		0x0100: "ImageWidth",
 		0x0101: "ImageHeight",
@@ -876,6 +881,9 @@ export class Exifjs {
 		0x8298: "Copyright",
 	}
 
+	/**
+	 * @type {Record<string, string>}
+	 */
 	static GPSTags = {
 		0x0000: "GPSVersionID",
 		0x0001: "GPSLatitudeRef",
@@ -910,6 +918,9 @@ export class Exifjs {
 		0x001e: "GPSDifferential",
 	}
 
+	/**
+	 * @type {Record<string, string>}
+	 */
 	static IFD1Tags = {
 		0x0100: "ImageWidth",
 		0x0101: "ImageHeight",
@@ -933,6 +944,9 @@ export class Exifjs {
 		0x0214: "ReferenceBlackWhite",
 	}
 
+	/**
+	 * @type {Record<string, Record<string, string>>}
+	 */
 	static StringValues = {
 		ExposureProgram: {
 			0: "Not defined",
