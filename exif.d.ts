@@ -10,30 +10,26 @@ export class Exifjs {
 	static base64ToArrayBuffer(base64: string, contentType: string): ArrayBuffer
 	/**
 	 * @param {ArrayBuffer} file
-	 * @returns {{exif: object, iptc: object, xmp?: object}}
+	 * @returns {Metadata}
 	 */
-	static handleBinaryFile(file: ArrayBuffer): {
-		exif: object
-		iptc: object
-		xmp?: object
-	}
+	static handleBinaryFile(file: ArrayBuffer): Metadata
 	/**
 	 * @param {ArrayBuffer} file
-	 * @returns {object}
+	 * @returns {Record<string, string>}
 	 */
-	static findEXIFinJPEG(file: ArrayBuffer): object
+	static findEXIFinJPEG(file: ArrayBuffer): Record<string, string>
 	/**
 	 * @param {ArrayBuffer} file
-	 * @returns {object}
+	 * @returns {Record<string, string>}
 	 */
-	static findIPTCinJPEG(file: ArrayBuffer): object
+	static findIPTCinJPEG(file: ArrayBuffer): Record<string, string>
 	/**
 	 * @param {ArrayBuffer} file
 	 * @param {number} startOffset
 	 * @param {number} sectionLength
-	 * @returns {object}
+	 * @returns {Record<string, unknown>}
 	 */
-	static readIPTCData(file: ArrayBuffer, startOffset: number, sectionLength: number): object
+	static readIPTCData(file: ArrayBuffer, startOffset: number, sectionLength: number): Record<string, unknown>
 	/**
 	 * @param {DataView} file
 	 * @param {number} tiffStart
@@ -125,30 +121,20 @@ export class Exifjs {
 	static StringValues: Record<string, Record<string, string>>
 	/**
 	 * @param {object} options
-	 * @param {boolean} [options.xmp]
+	 * @param {boolean} [options.withXmp]
 	 */
 	constructor(options?: {
-		xmp?: boolean
+		withXmp?: boolean
 	})
-	xmpEnabled: boolean
+	withXmp: boolean
+	/** @type {Metadata} */
+	lastData: Metadata
 	/**
-	 * @type {{ exif: object, iptc: object, xmp?: object }}
+	 * Retreive EXIF, IPTC, and XMP info from an image
+	 * @param {HTMLImageElement | File | Blob} img
+	 * @returns {Metadata}
 	 */
-	lastData: {
-		exif: object
-		iptc: object
-		xmp?: object
-	}
-	/**
-	 * Retreive EXIF, IPTC, & XMP info for an image
-	 * @param {Image | File | Blob} img
-	 * @returns {{ exif: object, iptc: object, xmp?: object }}
-	 */
-	getData(img: (new (width?: number, height?: number) => HTMLImageElement) | File | Blob): {
-		exif: object
-		iptc: object
-		xmp?: object
-	}
+	getData(img: HTMLImageElement | File | Blob): Metadata
 	/**
 	 * Can get data directly from a File
 	 * @param {File} file
@@ -160,4 +146,10 @@ export class Exifjs {
 	 * @returns {string}
 	 */
 	pretty(): string
+}
+
+export type Metadata = {
+	exif: Record<string, string>
+	iptc: Record<string, string>
+	xmp: Record<string, string>
 }

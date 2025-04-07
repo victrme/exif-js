@@ -1,41 +1,40 @@
 /* @ts-self-types="./exif.d.ts" */
 
 /**
+ * @typedef {object} Metadata
+ * @prop {Record<string, string>} Metadata.exif
+ * @prop {Record<string, string>} Metadata.iptc
+ * @prop {Record<string, string>} Metadata.xmp
+ */
+
+/**
  * A tool for reading EXIF metadata from image files.
  */
 export class Exifjs {
-	xmpEnabled = false
+	withXmp = false
 
-	/**
-	 * @type {{ exif: object, iptc: object, xmp?: object }}
-	 */
-	lastData = {
-		exif: {},
-		iptc: {},
-		xmp: undefined,
-	}
+	/** @type {Metadata} */
+	lastData = {}
 
 	/**
 	 * @param {object} options
-	 * @param {boolean} [options.xmp]
+	 * @param {boolean} [options.withXmp]
 	 */
 	constructor(options = {}) {
 		if (options.xmp !== undefined) {
-			this.xmpEnabled = options.xmp
+			this.withXmp = options.withXmp
 		}
 	}
 
 	/**
-	 * Retreive EXIF, IPTC, & XMP info for an image
-	 * @param {Image | File | Blob} img
-	 * @returns {{ exif: object, iptc: object, xmp?: object }}
+	 * Retreive EXIF, IPTC, and XMP info from an image
+	 * @param {HTMLImageElement | File | Blob} img
+	 * @returns {Metadata}
 	 */
 	async getData(img) {
-		const isImage = img instanceof globalThis.HTMLImageElement &&
-			img instanceof globalThis.Image
-		const isFile = img instanceof globalThis.Blob ||
-			img instanceof globalThis.File
-		const domExists = globalThis.HTMLImageElement && globalThis.Image
+		const isImage = img instanceof HTMLImageElement && img instanceof Image
+		const isFile = img instanceof Blob || img instanceof File
+		const domExists = HTMLImageElement && Image
 		const imgIsReady = img.complete
 
 		if (!domExists) {
@@ -117,7 +116,12 @@ export class Exifjs {
 	 * @returns {string}
 	 */
 	pretty() {
-		const data = this.lastData.exif
+		const data = {
+			...this.lastData.exif,
+			...this.lastData.iptc,
+			...this.lastData.exif,
+		}
+
 		let strPretty = ""
 		let a
 
@@ -144,7 +148,6 @@ export class Exifjs {
 	 * @returns {ArrayBuffer}
 	 */
 	static base64ToArrayBuffer(base64, contentType) {
-		console.log(base64)
 		const foundContentType = base64.substring(
 			base64.indexOf(":") + 1,
 			base64.indexOf(";base64,"),
@@ -167,19 +170,19 @@ export class Exifjs {
 
 	/**
 	 * @param {ArrayBuffer} file
-	 * @returns {{exif: object, iptc: object, xmp?: object}}
+	 * @returns {Metadata}
 	 */
 	static handleBinaryFile(file) {
-		const exif = Exifjs.findEXIFinJPEG(file)
-		const iptc = Exifjs.findIPTCinJPEG(file)
-		const xmp = this.xmpEnabled ? Exifjs.findXMPinJPEG(file) : undefined
-
-		return { exif, iptc, xmp }
+		return {
+			exif: Exifjs.findEXIFinJPEG(file),
+			iptc: Exifjs.findIPTCinJPEG(file),
+			xmp: this.withXmp ? Exifjs.findXMPinJPEG(file) : {},
+		}
 	}
 
 	/**
 	 * @param {ArrayBuffer} file
-	 * @returns {object}
+	 * @returns {Record<string, string>}
 	 */
 	static findEXIFinJPEG(file) {
 		const dataView = new DataView(file)
@@ -220,7 +223,7 @@ export class Exifjs {
 
 	/**
 	 * @param {ArrayBuffer} file
-	 * @returns {object}
+	 * @returns {Record<string, string>}
 	 */
 	static findIPTCinJPEG(file) {
 		const dataView = new DataView(file)
@@ -271,7 +274,7 @@ export class Exifjs {
 	 * @param {ArrayBuffer} file
 	 * @param {number} startOffset
 	 * @param {number} sectionLength
-	 * @returns {object}
+	 * @returns {Record<string, unknown>}
 	 */
 	static readIPTCData(file, startOffset, sectionLength) {
 		const IptcFieldMap = {
