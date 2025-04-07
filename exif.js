@@ -1,3 +1,5 @@
+/* @ts-self-types="./exif.d.ts" */
+
 /**
  * A tool for reading EXIF metadata from image files.
  */
@@ -806,7 +808,7 @@ export class Exifjs {
 
 	/**
 	 * @param {DocumentFragment} xml
-	 * @returns {string | object}
+	 * @returns {object}
 	 */
 	static xml2Object(xml) {
 		let obj = {}
@@ -841,7 +843,7 @@ export class Exifjs {
 				}
 			}
 		} else {
-			obj = xml.textContent
+			obj = { text: xml.textContent }
 		}
 
 		return obj

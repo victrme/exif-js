@@ -95,9 +95,9 @@ declare module "exif" {
         static xml2json(xml: DocumentFragment): JSON;
         /**
          * @param {DocumentFragment} xml
-         * @returns {string | object}
+         * @returns {object}
          */
-        static xml2Object(xml: DocumentFragment): string | object;
+        static xml2Object(xml: DocumentFragment): object;
         /**
          * @type {Record<string, string>}
          */
@@ -135,7 +135,7 @@ declare module "exif" {
             xmp?: object;
         };
         /**
-         * Retreive EXIF, IPTC, & XML info for an image
+         * Retreive EXIF, IPTC, & XMP info for an image
          * @param {Image | File | Blob} img
          * @returns {{ exif: object, iptc: object, xmp?: object }}
          */
