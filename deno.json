@@ -1,10 +1,11 @@
 {
 	"name": "@victr/exif-js",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"exports": "./exif.js",
 	"tasks": {
+		"lint": "deno task lint",
 		"dev": "deno run --allow-net --allow-read jsr:@std/http/file-server",
-		"types": "npx -p typescript tsc exif.js --declaration --allowJs --emitDeclarationOnly --outfile exif.d.ts"
+		"type": "deno run --allow-all npm:typescript@5.7.3/tsc exif.js --outfile exif.d.ts --declaration --emitDeclarationOnly --allowJs"
 	},
 	"fmt": {
 		"indentWidth": 4,
@@ -19,6 +20,7 @@
 				"recommended"
 			],
 			"include": [
+				"no-slow-types",
 				"prefer-ascii",
 				"no-useless-rename",
 				"no-non-null-assertion",

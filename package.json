@@ -1,6 +1,6 @@
 {
 	"name": "@victr/exif-js",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"description": "JavaScript library for reading EXIF image metadata",
 	"authors": [
 		"Jacob Seidelin",
