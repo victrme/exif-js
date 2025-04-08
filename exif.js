@@ -1,6 +1,8 @@
 /* @ts-self-types="./exif.d.ts" */
 
 /**
+ * EXIF, IPTC, and XMP metadata for the specified image
+ *
  * @typedef {object} Metadata
  * @prop {Record<string, string>} Metadata.exif
  * @prop {Record<string, string>} Metadata.iptc

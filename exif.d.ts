@@ -147,7 +147,9 @@ export class Exifjs {
 	 */
 	pretty(): string
 }
-
+/**
+ * EXIF, IPTC, and XMP metadata for the specified image
+ */
 export type Metadata = {
 	exif: Record<string, string>
 	iptc: Record<string, string>
